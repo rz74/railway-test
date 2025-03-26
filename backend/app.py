@@ -1,7 +1,7 @@
-from flask import Flask, request, send_file, jsonify
-from werkzeug.utils import secure_filename
+from flask import Flask, request, send_file, jsonify, after_this_request
 from flask_cors import CORS
 
+from werkzeug.utils import secure_filename
 import os
 import uuid
 import tempfile
@@ -53,9 +53,15 @@ def generate_site():
                 output_dir=build_dir
             )
 
-            # return send_file(zip_path, as_attachment=True)
-            return send_file(zip_path, as_attachment=True, max_age=0, conditional=False)
+            @after_this_request
+            def cleanup(response):
+                try:
+                    os.remove(zip_path)
+                except Exception as e:
+                    print(f"Cleanup failed: {e}")
+                return response
 
+            return send_file(zip_path, as_attachment=True, max_age=0, conditional=False)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
