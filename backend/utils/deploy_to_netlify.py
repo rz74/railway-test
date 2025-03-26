@@ -3,9 +3,9 @@ import os
 import zipfile
 import requests
 import uuid
+import certifi
 
 def deploy_to_netlify(site_dir, netlify_token):
-    # Step 1: Zip the site folder
     zip_filename = f"{uuid.uuid4().hex[:8]}_site.zip"
     zip_path = os.path.join("/tmp" if os.name != 'nt' else ".", zip_filename)
 
@@ -16,7 +16,6 @@ def deploy_to_netlify(site_dir, netlify_token):
                 arcname = os.path.relpath(filepath, start=site_dir)
                 zipf.write(filepath, arcname)
 
-    # Step 2: Deploy to Netlify (new site)
     headers = {
         "Authorization": f"Bearer {netlify_token}"
     }
@@ -28,7 +27,8 @@ def deploy_to_netlify(site_dir, netlify_token):
     response = requests.post(
         "https://api.netlify.com/api/v1/sites",
         headers=headers,
-        files=files
+        files=files,
+        verify=certifi.where()  # <- This fixes the SSL cert issue
     )
 
     files['file'].close()
