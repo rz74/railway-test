@@ -1,8 +1,10 @@
-# Flask app entry point
+from flask import Flask, request, send_file
+import os
 
-from flask import Flask
 app = Flask(__name__)
 
-@app.route('/')
-def index():
-    return "Backend is live!"
+@app.route('/generate-site', methods=['POST'])
+def generate_site():
+    # You’ll handle the uploaded files + form data here
+    # Save, rename, convert, encrypt, zip, and return
+    return "Site generation logic goes here"
