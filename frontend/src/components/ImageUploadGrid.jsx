@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 
 function ImageUploadGrid() {
-  const [images, setImages] = useState(Array(10).fill(null));           // holds File objects
-  const [filenames, setFilenames] = useState(Array(10).fill(''));       // holds custom names
+  const [images, setImages] = useState(Array(10).fill(null));
+  const [filenames, setFilenames] = useState(Array(10).fill(''));
   const [indices, setIndices] = useState(Array(10).fill(''));
   const [targetUrl, setTargetUrl] = useState('');
+  const [deliveryMode, setDeliveryMode] = useState('jump');
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const handleFileChange = (index, file) => {
@@ -12,7 +13,7 @@ function ImageUploadGrid() {
     const newImages = [...images];
     const newNames = [...filenames];
     newImages[index] = file;
-    newNames[index] = file.name.replace(/\.[^/.]+$/, ""); // default to original filename without extension
+    newNames[index] = file.name.replace(/\.[^/.]+$/, '');
     setImages(newImages);
     setFilenames(newNames);
   };
@@ -35,7 +36,6 @@ function ImageUploadGrid() {
     indices.forEach(val => {
       if (val) counts[val] = (counts[val] || 0) + 1;
     });
-
     const conflicts = new Set();
     indices.forEach((val, idx) => {
       if (val && counts[val] > 1) {
@@ -48,12 +48,11 @@ function ImageUploadGrid() {
   const allFilled = images.every(img => img !== null);
   const allIndexed = indices.every(val => val >= 1 && val <= 10);
   const noDuplicates = getConflictingIndices().size === 0;
-
   const formValid = allFilled && allIndexed && noDuplicates;
 
   const handleSubmit = () => {
-    console.log({ images, filenames, indices, targetUrl });
-    // TODO: send all form data to backend
+    console.log({ images, filenames, indices, targetUrl, deliveryMode });
+    // TODO: send data to backend
   };
 
   return (
@@ -133,7 +132,6 @@ function ImageUploadGrid() {
               {[...Array(10)].map((_, idx) => {
                 const val = idx + 1;
                 const isUsed = indices.includes(val) && indices[i] !== val;
-
                 return (
                   <option key={val} value={val} disabled={isUsed}>
                     {val}
@@ -154,6 +152,31 @@ function ImageUploadGrid() {
           className="w-full rounded px-2 py-1 text-black"
           placeholder="https://example.com"
         />
+      </div>
+
+      <div className="mt-4">
+        <label className="block font-semibold mb-2">Delivery Method</label>
+        <div className="flex flex-col gap-2 text-sm text-gray-300">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              value="jump"
+              checked={deliveryMode === 'jump'}
+              onChange={(e) => setDeliveryMode(e.target.value)}
+            />
+            Jump to target URL (recommended – works for all sites)
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              value="mirror"
+              checked={deliveryMode === 'mirror'}
+              onChange={(e) => setDeliveryMode(e.target.value)}
+            />
+            Mirror target inside puzzle site (works with GitHub, Notion, Wikipedia, and some blogs)
+          </label>
+        </div>
       </div>
 
       <button
