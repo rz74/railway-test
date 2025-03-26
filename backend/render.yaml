@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: memory-puzzle-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: flask run --host=0.0.0.0 --port=10000
+    envVars:
+      - key: FLASK_APP
+        value: app.py
+    autoDeploy: true
