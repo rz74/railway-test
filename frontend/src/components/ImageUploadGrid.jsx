@@ -12,46 +12,66 @@ function ImageUploadGrid() {
   };
 
   const handleIndexChange = (index, value) => {
+    const num = parseInt(value, 10);
     const newIndices = [...indices];
-    newIndices[index] = value;
+    newIndices[index] = isNaN(num) ? '' : num;
     setIndices(newIndices);
   };
 
-  const handleSubmit = async () => {
-    const formData = new FormData();
-    images.forEach((img, i) => {
-      if (img) formData.append('images', img);
-      formData.append('index_' + i, indices[i]);
-    });
-    formData.append('targetUrl', targetUrl);
-
-    await fetch('/api/build', { method: 'POST', body: formData });
-    alert('Submitted!');
+  const handleSubmit = () => {
+    console.log({ images, indices, targetUrl });
+    // TODO: send data to backend
   };
 
   return (
-    <div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {images.map((_, i) => (
-          <div key={i} className="border p-2 rounded bg-gray-800">
-            <input type="file" accept="image/*" onChange={e => handleFileChange(i, e.target.files[0])} />
-            <input
-              type="number"
-              placeholder="Index (1-10)"
-              className="w-full mt-1 text-black"
-              value={indices[i]}
-              onChange={e => handleIndexChange(i, e.target.value)}
-            />
-          </div>
-        ))}
+    <div className="space-y-6">
+      {images.map((img, i) => (
+        <div key={i} className="bg-gray-800 p-4 rounded">
+          <label className="block font-semibold mb-2">Image {i + 1}</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileChange(i, e.target.files[0])}
+            className="text-white"
+          />
+
+          <select
+            value={indices[i] || ''}
+            onChange={(e) => handleIndexChange(i, e.target.value)}
+            className="mt-2 w-full rounded px-2 py-1 text-black"
+          >
+            <option value="">Select index</option>
+            {[...Array(10)].map((_, idx) => {
+              const val = idx + 1;
+              const isUsed = indices.includes(val) && indices[i] !== val;
+
+              return (
+                <option key={val} value={val} disabled={isUsed}>
+                  {val}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      ))}
+
+      <div>
+        <label className="block font-semibold mb-2">Target URL</label>
+        <input
+          type="url"
+          value={targetUrl}
+          onChange={(e) => setTargetUrl(e.target.value)}
+          className="w-full rounded px-2 py-1 text-black"
+          placeholder="https://example.com"
+        />
       </div>
-      <input
-        className="mt-4 p-2 w-full text-black"
-        placeholder="Target URL"
-        value={targetUrl}
-        onChange={e => setTargetUrl(e.target.value)}
-      />
-      <button className="mt-4 bg-green-600 px-4 py-2 rounded" onClick={handleSubmit}>Build Puzzle</button>
+
+      <button
+        onClick={handleSubmit}
+        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mt-4"
+      >
+        Build Puzzle Site
+      </button>
     </div>
   );
 }
