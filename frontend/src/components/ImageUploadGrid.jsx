@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
 
 function ImageUploadGrid() {
-  const [images, setImages] = useState(Array(10).fill(null));
+  const [images, setImages] = useState(Array(10).fill(null));           // holds File objects
+  const [filenames, setFilenames] = useState(Array(10).fill(''));       // holds custom names
   const [indices, setIndices] = useState(Array(10).fill(''));
   const [targetUrl, setTargetUrl] = useState('');
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const handleFileChange = (index, file) => {
+    if (!file) return;
     const newImages = [...images];
+    const newNames = [...filenames];
     newImages[index] = file;
+    newNames[index] = file.name.replace(/\.[^/.]+$/, ""); // default to original filename without extension
     setImages(newImages);
+    setFilenames(newNames);
+  };
+
+  const handleRename = (index, value) => {
+    const newNames = [...filenames];
+    newNames[index] = value;
+    setFilenames(newNames);
   };
 
   const handleIndexChange = (index, value) => {
@@ -40,8 +52,8 @@ function ImageUploadGrid() {
   const formValid = allFilled && allIndexed && noDuplicates;
 
   const handleSubmit = () => {
-    console.log({ images, indices, targetUrl });
-    // TODO: send to backend
+    console.log({ images, filenames, indices, targetUrl });
+    // TODO: send all form data to backend
   };
 
   return (
@@ -50,9 +62,28 @@ function ImageUploadGrid() {
         const file = images[i];
         const previewUrl = file ? URL.createObjectURL(file) : null;
         const selectedIndex = indices[i];
+        const fileName = filenames[i];
 
         return (
-          <div key={i} className="bg-gray-800 p-4 rounded relative">
+          <div
+            key={i}
+            className={`bg-gray-800 p-4 rounded relative border-2 transition ${
+              dragOverIndex === i ? 'border-blue-400' : 'border-transparent'
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverIndex(i);
+            }}
+            onDragLeave={() => setDragOverIndex(null)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverIndex(null);
+              const file = e.dataTransfer.files?.[0];
+              if (file && file.type.startsWith('image/')) {
+                handleFileChange(i, file);
+              }
+            }}
+          >
             <label className="block font-semibold mb-2">Image {i + 1}</label>
 
             <input
@@ -62,7 +93,7 @@ function ImageUploadGrid() {
               className="text-white"
             />
 
-            {previewUrl && (
+            {previewUrl ? (
               <div className="relative mt-2">
                 <img
                   src={previewUrl}
@@ -74,6 +105,22 @@ function ImageUploadGrid() {
                     {selectedIndex}
                   </span>
                 )}
+              </div>
+            ) : (
+              <div className="mt-2 h-32 flex items-center justify-center bg-gray-700 rounded text-gray-400 text-sm border border-dashed border-gray-500">
+                Drag & Drop or Select Image
+              </div>
+            )}
+
+            {file && (
+              <div className="mt-2">
+                <label className="text-sm text-gray-300">Rename file:</label>
+                <input
+                  type="text"
+                  value={fileName}
+                  onChange={(e) => handleRename(i, e.target.value)}
+                  className="w-full mt-1 rounded px-2 py-1 text-black"
+                />
               </div>
             )}
 
