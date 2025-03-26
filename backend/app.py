@@ -1,21 +1,23 @@
-from flask import Flask, request, send_file, jsonify, after_this_request
-from flask_cors import CORS
 
+from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 import os
 import uuid
 import tempfile
-import shutil
 from utils.encrypt import encrypt_images
 from utils.build_site import build_puzzle_site
+from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
-CORS(app)
-
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
+
+NETLIFY_TOKEN = os.environ.get("NETLIFY_TOKEN")  # Make sure this is set in your environment
 
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
+    if not NETLIFY_TOKEN:
+        return jsonify({"error": "Missing Netlify API token"}), 500
+
     try:
         images = []
         for i in range(10):
@@ -45,7 +47,7 @@ def generate_site():
             build_dir = os.path.join(tmpdir, "output")
             os.makedirs(build_dir, exist_ok=True)
 
-            zip_path = build_puzzle_site(
+            puzzle_site_path = build_puzzle_site(
                 image_paths=image_paths,
                 labels=filenames,
                 indices=[int(i) for i in indices],
@@ -54,31 +56,8 @@ def generate_site():
                 output_dir=build_dir
             )
 
-            @after_this_request
-            def cleanup(response):
-                try:
-                    os.remove(zip_path)
-                except Exception as e:
-                    print(f"Cleanup failed: {e}")
-                return response
-
-            # return send_file(zip_path, as_attachment=True, max_age=0, conditional=False)
-            
-
-            # Safe permanent location 
-            safe_output_path = os.path.join("output", os.path.basename(zip_path))
-            shutil.copy(zip_path, safe_output_path)
-
-            @after_this_request
-            def cleanup(response):
-                try:
-                    os.remove(safe_output_path)
-                except Exception as e:
-                    print(f"Cleanup failed: {e}")
-                return response
-
-            return send_file(safe_output_path, as_attachment=True)
-
+            deploy_result = deploy_to_netlify(puzzle_site_path, NETLIFY_TOKEN)
+            return jsonify(deploy_result), 200 if deploy_result["success"] else 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
