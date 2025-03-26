@@ -3,7 +3,9 @@ import React, { useState } from 'react';
 function ImageUploadGrid() {
   const [images, setImages] = useState(Array(10).fill(null));
   const [filenames, setFilenames] = useState(Array(10).fill(''));
-  const [indices, setIndices] = useState(Array(10).fill(''));
+  // const [indices, setIndices] = useState(Array(10).fill(''));
+  const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
+
   const [targetUrl, setTargetUrl] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('jump');
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -172,6 +174,7 @@ function ImageUploadGrid() {
               {[...Array(10)].map((_, idx) => {
                 const val = idx + 1;
                 const isUsed = indices.includes(val) && indices[i] !== val;
+
                 return (
                   <option key={val} value={val} disabled={isUsed}>
                     {val}
@@ -179,6 +182,24 @@ function ImageUploadGrid() {
                 );
               })}
             </select>
+
+
+            {/* <select
+              value={selectedIndex || ''}
+              onChange={(e) => handleIndexChange(i, e.target.value)}
+              className="mt-2 w-full rounded px-2 py-1 text-black"
+            >
+              <option value="">Select index</option>
+              {[...Array(10)].map((_, idx) => {
+                const val = idx + 1;
+                const isUsed = indices.includes(val) && indices[i] !== val;
+                return (
+                  <option key={val} value={val} disabled={isUsed}>
+                    {val}
+                  </option>
+                );
+              })}
+            </select> */}
           </div>
         );
       })}
