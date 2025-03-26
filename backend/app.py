@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import os
 import uuid
 import tempfile
+import shutil
 from utils.encrypt import encrypt_images
 from utils.build_site import build_puzzle_site
 
@@ -61,7 +62,23 @@ def generate_site():
                     print(f"Cleanup failed: {e}")
                 return response
 
-            return send_file(zip_path, as_attachment=True, max_age=0, conditional=False)
+            # return send_file(zip_path, as_attachment=True, max_age=0, conditional=False)
+            
+
+            # Safe permanent location 
+            safe_output_path = os.path.join("output", os.path.basename(zip_path))
+            shutil.copy(zip_path, safe_output_path)
+
+            @after_this_request
+            def cleanup(response):
+                try:
+                    os.remove(safe_output_path)
+                except Exception as e:
+                    print(f"Cleanup failed: {e}")
+                return response
+
+            return send_file(safe_output_path, as_attachment=True)
+
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
