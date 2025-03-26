@@ -5,7 +5,8 @@ import base64
 import shutil
 from .encrypt import encrypt_images
 
-TEMPLATE_SITE_PATH = "template_site"
+TEMPLATE_SITE_PATH = os.path.join(os.path.dirname(__file__), "..", "template_site")
+
 
 def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, output_dir):
     if not os.path.exists(TEMPLATE_SITE_PATH):

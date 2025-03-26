@@ -50,10 +50,50 @@ function ImageUploadGrid() {
   const noDuplicates = getConflictingIndices().size === 0;
   const formValid = allFilled && allIndexed && noDuplicates;
 
-  const handleSubmit = () => {
-    console.log({ images, filenames, indices, targetUrl, deliveryMode });
-    // TODO: send data to backend
+  // const handleSubmit = () => {
+  //   console.log({ images, filenames, indices, targetUrl, deliveryMode });
+  //   // TODO: send data to backend
+  // };
+
+  const handleSubmit = async () => {
+    const formData = new FormData();
+  
+    // Add files
+    images.forEach((file, i) => {
+      formData.append(`image${i}`, file);
+    });
+  
+    // Add filenames, indices, and other metadata
+    filenames.forEach(name => formData.append("filenames[]", name));
+    indices.forEach(index => formData.append("indices[]", index));
+    formData.append("targetUrl", targetUrl);
+    formData.append("deliveryMode", deliveryMode);
+  
+    try {
+      const res = await fetch("http://127.0.0.1:5000/generate-site", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!res.ok) {
+        const err = await res.json();
+        alert("❌ Error: " + (err.error || "Something went wrong"));
+        return;
+      }
+  
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "puzzle_site.zip";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("❌ Submission error:", err);
+      alert("❌ Network error: Could not contact server.");
+    }
   };
+  
 
   return (
     <div className="space-y-6">

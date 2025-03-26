@@ -1,5 +1,7 @@
 from flask import Flask, request, send_file, jsonify
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
+
 import os
 import uuid
 import tempfile
@@ -7,6 +9,8 @@ from utils.encrypt import encrypt_images
 from utils.build_site import build_puzzle_site
 
 app = Flask(__name__)
+CORS(app)
+
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
 
 @app.route("/generate-site", methods=["POST"])
@@ -49,7 +53,9 @@ def generate_site():
                 output_dir=build_dir
             )
 
-            return send_file(zip_path, as_attachment=True)
+            # return send_file(zip_path, as_attachment=True)
+            return send_file(zip_path, as_attachment=True, max_age=0, conditional=False)
+
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
