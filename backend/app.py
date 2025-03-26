@@ -11,7 +11,7 @@ from utils.deploy_to_netlify import deploy_to_netlify
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
 
-NETLIFY_TOKEN = os.environ.get("NETLIFY_TOKEN")  # Make sure this is set in your environment
+NETLIFY_TOKEN = os.environ.get("NETLIFY_TOKEN")  
 
 @app.route("/generate-site", methods=["POST"])
 def generate_site():

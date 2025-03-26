@@ -3,11 +3,10 @@ import React, { useState } from 'react';
 function ImageUploadGrid() {
   const [images, setImages] = useState(Array(10).fill(null));
   const [filenames, setFilenames] = useState(Array(10).fill(''));
-  // const [indices, setIndices] = useState(Array(10).fill(''));
   const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
-
   const [targetUrl, setTargetUrl] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('jump');
+  const [netlifyToken, setNetlifyToken] = useState('');
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const handleFileChange = (index, file) => {
@@ -50,52 +49,41 @@ function ImageUploadGrid() {
   const allFilled = images.every(img => img !== null);
   const allIndexed = indices.every(val => val >= 1 && val <= 10);
   const noDuplicates = getConflictingIndices().size === 0;
-  const formValid = allFilled && allIndexed && noDuplicates;
-
-  // const handleSubmit = () => {
-  //   console.log({ images, filenames, indices, targetUrl, deliveryMode });
-  //   // TODO: send data to backend
-  // };
+  const formValid = allFilled && allIndexed && noDuplicates && netlifyToken;
 
   const handleSubmit = async () => {
     const formData = new FormData();
-  
-    // Add files
+
     images.forEach((file, i) => {
       formData.append(`image${i}`, file);
     });
-  
-    // Add filenames, indices, and other metadata
+
     filenames.forEach(name => formData.append("filenames[]", name));
     indices.forEach(index => formData.append("indices[]", index));
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
-  
+    formData.append("netlifyToken", netlifyToken);
+
     try {
       const res = await fetch("http://127.0.0.1:5000/generate-site", {
         method: "POST",
         body: formData,
       });
-  
+
+      const result = await res.json();
       if (!res.ok) {
-        const err = await res.json();
-        alert("❌ Error: " + (err.error || "Something went wrong"));
+        alert("❌ Error: " + (result.error || "Something went wrong"));
         return;
       }
-  
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "puzzle_site.zip";
-      a.click();
-      window.URL.revokeObjectURL(url);
+
+      const url = result.url;
+      alert("✅ Deployed: " + url);
+      window.open(url, "_blank");
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
     }
   };
-  
 
   return (
     <div className="space-y-6">
@@ -126,7 +114,6 @@ function ImageUploadGrid() {
             }}
           >
             <label className="block font-semibold mb-2">Image {i + 1}</label>
-
             <input
               type="file"
               accept="image/*"
@@ -174,7 +161,6 @@ function ImageUploadGrid() {
               {[...Array(10)].map((_, idx) => {
                 const val = idx + 1;
                 const isUsed = indices.includes(val) && indices[i] !== val;
-
                 return (
                   <option key={val} value={val} disabled={isUsed}>
                     {val}
@@ -182,24 +168,6 @@ function ImageUploadGrid() {
                 );
               })}
             </select>
-
-
-            {/* <select
-              value={selectedIndex || ''}
-              onChange={(e) => handleIndexChange(i, e.target.value)}
-              className="mt-2 w-full rounded px-2 py-1 text-black"
-            >
-              <option value="">Select index</option>
-              {[...Array(10)].map((_, idx) => {
-                const val = idx + 1;
-                const isUsed = indices.includes(val) && indices[i] !== val;
-                return (
-                  <option key={val} value={val} disabled={isUsed}>
-                    {val}
-                  </option>
-                );
-              })}
-            </select> */}
           </div>
         );
       })}
@@ -227,7 +195,6 @@ function ImageUploadGrid() {
             />
             Jump to target URL (recommended – works for all sites)
           </label>
-
           <label className="flex items-center gap-2">
             <input
               type="radio"
@@ -235,9 +202,20 @@ function ImageUploadGrid() {
               checked={deliveryMode === 'mirror'}
               onChange={(e) => setDeliveryMode(e.target.value)}
             />
-            Mirror target inside puzzle site (works with GitHub, Notion, Wikipedia, and some blogs)
+            Mirror target inside puzzle site (works with GitHub, Notion, etc.)
           </label>
         </div>
+      </div>
+
+      <div>
+        <label className="block font-semibold mb-2">Netlify Access Token</label>
+        <input
+          type="password"
+          value={netlifyToken}
+          onChange={(e) => setNetlifyToken(e.target.value)}
+          className="w-full rounded px-2 py-1 text-black"
+          placeholder="Paste your Netlify token"
+        />
       </div>
 
       <button
@@ -247,7 +225,7 @@ function ImageUploadGrid() {
           formValid ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-600 cursor-not-allowed'
         }`}
       >
-        Build Puzzle Site
+        Build & Deploy Puzzle Site
       </button>
     </div>
   );
