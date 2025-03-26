@@ -128,11 +128,22 @@
       return await res.json();
     }
 
+    // async function fetchNotionUrl() {
+    //   // const res = await fetch("/.netlify/functions/get-notion-url");
+    //   // return await res.text();
+    //   return "/.netlify/functions/mirror-github";
+    // }
     async function fetchNotionUrl() {
-      // const res = await fetch("/.netlify/functions/get-notion-url");
-      // return await res.text();
-      return "/.netlify/functions/mirror-github";
+    try {
+      const res = await fetch("/.netlify/functions/get-notion-url");
+      if (!res.ok) throw new Error("Failed to fetch target URL");
+      return await res.text();
+    } catch (err) {
+      console.error("❌ Error loading target URL:", err);
+      return "/";
     }
+  }
+
 
     async function decryptImage(encFilename) {
     try {

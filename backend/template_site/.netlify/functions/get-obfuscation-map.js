@@ -1,20 +1,17 @@
-export async function handler(event, context) {
-    const map = process.env.OBFUSCATION_MAP;
-  
-    if (!map) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "OBFUSCATION_MAP not set" })
-      };
-    }
-  
+import fs from "fs";
+
+export async function handler() {
+  try {
+    const data = fs.readFileSync("secrets/obfuscation-map.json", "utf8");
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store"
-      },
-      body: map
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      body: data
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Could not load obfuscation map" })
     };
   }
-  
+}

@@ -1,13 +1,12 @@
+import fs from "fs";
+import path from "path";
+
 export async function handler(event, context) {
-    const url = process.env.NOTION_PAGE_URL;
-  
-    if (!url) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "NOTION_PAGE_URL not found" })
-      };
-    }
-  
+  try {
+    const filePath = path.join(process.cwd(), "secrets", "target.txt");
+
+    const url = fs.readFileSync(filePath, "utf8").trim();
+
     return {
       statusCode: 200,
       headers: {
@@ -16,5 +15,10 @@ export async function handler(event, context) {
       },
       body: url
     };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Could not load target URL" })
+    };
   }
-  
+}
