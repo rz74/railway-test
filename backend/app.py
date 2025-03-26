@@ -11,12 +11,11 @@ from utils.deploy_to_netlify import deploy_to_netlify
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
 
-NETLIFY_TOKEN = os.environ.get("NETLIFY_TOKEN")  
-
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
-    if not NETLIFY_TOKEN:
-        return jsonify({"error": "Missing Netlify API token"}), 500
+    netlify_token = request.form.get("netlifyToken")
+    if not netlify_token:
+        return jsonify({"error": "Missing Netlify token"}), 400
 
     try:
         images = []
@@ -56,7 +55,7 @@ def generate_site():
                 output_dir=build_dir
             )
 
-            deploy_result = deploy_to_netlify(puzzle_site_path, NETLIFY_TOKEN)
+            deploy_result = deploy_to_netlify(puzzle_site_path, netlify_token)
             return jsonify(deploy_result), 200 if deploy_result["success"] else 500
 
     except Exception as e:
