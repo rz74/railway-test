@@ -65,7 +65,9 @@ function ImageUploadGrid() {
     formData.append("netlifyToken", netlifyToken);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/generate-site", {
+      // const res = await fetch("http://127.0.0.1:5000/generate-site", {
+      const res = await fetch("https://memory-puzzle-web-app.onrender.com/generate-site", {
+
         method: "POST",
         body: formData,
       });
