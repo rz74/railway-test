@@ -38,4 +38,4 @@ def deploy_to_netlify(site_dir, netlify_token):
         site_info = response.json()
         return {"success": True, "url": site_info["url"], "admin_url": site_info["admin_url"]}
     else:
-        return {"success": False, "error": response.text, "status": response.status_code"}
+        return {"success": False, "error": response.text, "status": response.status_code}

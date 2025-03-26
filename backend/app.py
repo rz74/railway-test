@@ -1,6 +1,7 @@
 
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
 import os
 import uuid
 import tempfile
@@ -9,6 +10,8 @@ from utils.build_site import build_puzzle_site
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
+CORS(app)
+
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
 
 @app.route("/generate-site", methods=["POST"])
