@@ -21,7 +21,9 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     shutil.copy2(source_toml, dest_toml)
 
     # Copy functions folder
-    source_functions = os.path.join(TEMPLATE_SITE_PATH, "functions")
+    # source_functions = os.path.join(TEMPLATE_SITE_PATH, "functions")
+    source_functions = os.path.join(TEMPLATE_SITE_PATH, ".netlify", "functions")
+
     dest_functions = os.path.join(site_path, "netlify", "functions")
     shutil.copytree(source_functions, dest_functions)
 
