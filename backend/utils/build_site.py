@@ -7,7 +7,6 @@ from .encrypt import encrypt_images
 
 TEMPLATE_SITE_PATH = os.path.join(os.path.dirname(__file__), "..", "template_site")
 
-
 def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, output_dir):
     if not os.path.exists(TEMPLATE_SITE_PATH):
         raise Exception("Missing template_site/ folder.")
@@ -15,6 +14,16 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     site_id = str(uuid.uuid4())[:8]
     site_path = os.path.join(output_dir, f"puzzle_{site_id}")
     shutil.copytree(TEMPLATE_SITE_PATH, site_path)
+
+    # Copy netlify.toml
+    source_toml = os.path.join(TEMPLATE_SITE_PATH, "netlify.toml")
+    dest_toml = os.path.join(site_path, "netlify.toml")
+    shutil.copy2(source_toml, dest_toml)
+
+    # Copy functions folder
+    source_functions = os.path.join(TEMPLATE_SITE_PATH, "functions")
+    dest_functions = os.path.join(site_path, "netlify", "functions")
+    shutil.copytree(source_functions, dest_functions)
 
     label_map = {}
     index_map = {}
@@ -50,4 +59,4 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
     shutil.make_archive(zip_path[:-4], 'zip', site_path)
 
-    return zip_path
+    return zip_path, site_path  # Return both for optional deploy
