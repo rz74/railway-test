@@ -1,4 +1,3 @@
-
 import os
 import json
 import uuid
@@ -13,7 +12,7 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
         raise Exception("Missing template_site/ folder.")
 
     site_id = str(uuid.uuid4())[:8]
-    site_path = os.path.join(output_dir, f"puzzle_{{site_id}}")
+    site_path = os.path.join(output_dir, f"puzzle_{site_id}")
     shutil.copytree(TEMPLATE_SITE_PATH, site_path)
 
     # Copy netlify.toml
@@ -29,23 +28,25 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     else:
         print("⚠️ Warning: No Netlify functions folder found.")
 
+    # Build label and index maps
     label_map = {}
     index_map = {}
     for i in range(10):
         label_map[labels[i]] = image_paths[i]
         index_map[labels[i]] = indices[i]
 
-    obfuscation_map = {{
+    # Obfuscation map (hide original filenames)
+    obfuscation_map = {
         label: uuid.uuid4().hex[:12] for label in label_map
-    }}
+    }
 
     key = os.urandom(32)
     key_b64 = base64.b64encode(key).decode()
 
     encrypted_dir = os.path.join(site_path, "encrypted")
-    encrypt_images(image_paths, key, encrypted_dir, {{
+    encrypt_images(image_paths, key, encrypted_dir, {
         obfuscation_map[label]: label_map[label] for label in label_map
-    }})
+    })
 
     secrets_dir = os.path.join(site_path, "secrets")
     os.makedirs(secrets_dir, exist_ok=True)
@@ -60,7 +61,7 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     with open(os.path.join(secrets_dir, "delivery-mode.txt"), "w") as f:
         f.write(delivery_mode)
 
-    zip_path = os.path.join(output_dir, f"{{site_id}}.zip")
+    zip_path = os.path.join(output_dir, f"{site_id}.zip")
     shutil.make_archive(zip_path[:-4], 'zip', site_path)
 
     return zip_path, site_path
