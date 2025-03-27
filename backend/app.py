@@ -59,6 +59,15 @@ def generate_site():
             #     generate_zip=True
             # )
 
+            # zip_path = build_site(
+            #     image_paths=image_paths,
+            #     labels=filenames,
+            #     indices=[int(idx) for idx in indices],
+            #     target_url=target_url,
+            #     delivery_mode=delivery_mode,
+            #     output_dir=os.path.join(tmpdir, "output")
+            # )
+
             zip_path = build_site(
                 image_paths=image_paths,
                 labels=filenames,
@@ -67,6 +76,7 @@ def generate_site():
                 delivery_mode=delivery_mode,
                 output_dir=os.path.join(tmpdir, "output")
             )
+
 
 
             print("📦 Site built, starting deploy...")
