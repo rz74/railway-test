@@ -48,7 +48,7 @@ def deploy_to_netlify(site_path, netlify_token):
     )
 
     files['file'].close()
-    os.remove(zip_path)
+    # os.remove(zip_path)
 
     if deploy_res.status_code != 200:
         return {
