@@ -28,6 +28,7 @@ def deploy_to_netlify(site_path, netlify_token):
     )
 
     if site_res.status_code != 200:
+        print("❌ Site creation error:", site_res.text)
         return {
             "success": False,
             "error": "Site creation failed",
