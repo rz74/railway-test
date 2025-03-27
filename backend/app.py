@@ -1,4 +1,5 @@
-from flask import Flask, request, send_file, jsonify
+
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import tempfile
 import os
@@ -9,7 +10,6 @@ app = Flask(__name__)
 CORS(app, resources={r"/generate-site": {"origins": "*"}})
 
 print("🔥 app started")
-
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
@@ -21,6 +21,7 @@ def generate_site():
         netlify_token = request.form.get("netlifyToken")
         target_url = request.form.get("targetUrl")
         delivery_mode = request.form.get("deliveryMode")
+
         filenames = request.form.getlist("filenames[]")
         indices = request.form.getlist("indices[]")
 
@@ -57,18 +58,15 @@ def generate_site():
                 output_dir=os.path.join(tmpdir, "output")
             )
 
-            print("📦 Site built at", zip_path)
+            print("📦 Site built, starting deploy...")
 
             deploy_result = deploy_to_netlify(site_path, netlify_token)
             if not deploy_result["success"]:
                 raise Exception("Deploy failed: " + deploy_result["error"])
 
-            print("✅ Deployed to:", deploy_result["url"])
+            print("✅ Deploy successful:", deploy_result["url"])
 
-            # Optionally include the deploy URL in headers for debugging
-            response = send_file(zip_path, as_attachment=True)
-            response.headers["X-Netlify-URL"] = deploy_result["url"]
-            return response
+            return send_file(zip_path, as_attachment=True)
 
     except Exception as e:
         print("❌ Exception during /generate-site:", e)
