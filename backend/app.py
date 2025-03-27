@@ -3,7 +3,9 @@ from flask_cors import CORS
 import tempfile
 import shutil
 import os
-from utils.build_site import build_site
+# from utils.build_site import build_site
+from utils.build_site import build_puzzle_site as build_site
+
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
