@@ -5,7 +5,7 @@ import uuid
 import certifi
 
 def deploy_to_netlify(site_path, netlify_token):
-    # Step 1: Zip the folder
+    # Step 1: Zip the directory
     zip_filename = f"{uuid.uuid4().hex[:8]}_site.zip"
     zip_path = os.path.join("/tmp" if os.name != 'nt' else ".", zip_filename)
 
@@ -16,37 +16,49 @@ def deploy_to_netlify(site_path, netlify_token):
                 arcname = os.path.relpath(filepath, start=site_path)
                 zipf.write(filepath, arcname)
 
-    # Step 2: Use correct API for new deploy
     headers = {
-        "Authorization": f"Bearer {netlify_token}"
+        "Authorization": f"Bearer {netlify_token}",
     }
 
-    # Create a new site first
-    create_res = requests.post(
+    # Step 2: Create the site
+    site_res = requests.post(
         "https://api.netlify.com/api/v1/sites",
         headers=headers,
         verify=certifi.where()
     )
-    if create_res.status_code != 200:
-        return {"success": False, "error": f"Site creation failed: {create_res.text}"}
 
-    site_info = create_res.json()
+    if site_res.status_code != 200:
+        return {
+            "success": False,
+            "error": "Site creation failed",
+            "details": site_res.json()
+        }
+
+    site_info = site_res.json()
     site_id = site_info["id"]
 
-    # Step 3: Deploy the site files using /deploys
-    deploy_url = f"https://api.netlify.com/api/v1/sites/{site_id}/deploys"
-    with open(zip_path, 'rb') as f:
-        deploy_res = requests.post(
-            deploy_url,
-            headers=headers,
-            files={'file': f},
-            verify=certifi.where()
-        )
+    # Step 3: Upload deploy ZIP
+    files = {'file': open(zip_path, 'rb')}
+    deploy_res = requests.post(
+        f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
+        headers=headers,
+        files=files,
+        verify=certifi.where()
+    )
 
+    files['file'].close()
     os.remove(zip_path)
 
     if deploy_res.status_code != 200:
-        return {"success": False, "error": f"Deploy failed: {deploy_res.text}"}
+        return {
+            "success": False,
+            "error": "Deploy failed",
+            "details": deploy_res.json()
+        }
 
     deploy_info = deploy_res.json()
-    return {"success": True, "url": deploy_info["deploy_ssl_url"], "admin_url": site_info["admin_url"]}
+    return {
+        "success": True,
+        "url": deploy_info.get("deploy_ssl_url") or deploy_info.get("url"),
+        "admin_url": site_info.get("admin_url")
+    }
