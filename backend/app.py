@@ -1,65 +1,71 @@
-
-from flask import Flask, request, jsonify
-from werkzeug.utils import secure_filename
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import os
-import uuid
 import tempfile
-from utils.encrypt import encrypt_images
-from utils.build_site import build_puzzle_site
+import shutil
+import os
+from utils.build_site import build_site
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB limit
-
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
-    netlify_token = request.form.get("netlifyToken")
-    if not netlify_token:
-        return jsonify({"error": "Missing Netlify token"}), 400
-
     try:
-        images = []
-        for i in range(10):
-            image_file = request.files.get(f"image{i}")
-            if not image_file:
-                return jsonify({"error": f"Missing image{i}"}), 400
-            images.append((f"image{i}", image_file))
+        print("📩 Request received at /generate-site")
+        print("📝 Form keys:", list(request.form.keys()))
+        print("📎 File keys:", list(request.files.keys()))
+
+        netlify_token = request.form.get("netlifyToken")
+        target_url = request.form.get("targetUrl")
+        delivery_mode = request.form.get("deliveryMode")
 
         filenames = request.form.getlist("filenames[]")
         indices = request.form.getlist("indices[]")
-        target_url = request.form.get("targetUrl")
-        delivery_mode = request.form.get("deliveryMode", "jump")
 
-        if not (len(filenames) == len(indices) == 10):
-            return jsonify({"error": "Expected 10 filenames and 10 indices."}), 400
+        if not netlify_token:
+            raise ValueError("Missing Netlify token")
+        if not target_url:
+            raise ValueError("Missing target URL")
+        if not filenames or not indices or len(filenames) != 10 or len(indices) != 10:
+            raise ValueError("Expected 10 filenames and 10 indices")
+
+        print("✅ Received target:", target_url)
+        print("🧩 Delivery mode:", delivery_mode)
+        print("🧠 Filenames:", filenames)
+        print("🔢 Indices:", indices)
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            input_dir = os.path.join(tmpdir, "input")
-            os.makedirs(input_dir, exist_ok=True)
-
             image_paths = []
-            for i, (field, file) in enumerate(images):
-                path = os.path.join(input_dir, secure_filename(file.filename))
-                file.save(path)
-                image_paths.append(path)
+            for i in range(10):
+                file = request.files.get(f"image{i}")
+                if not file:
+                    raise ValueError(f"Missing image{i}")
+                save_path = os.path.join(tmpdir, f"{i}_{file.filename}")
+                file.save(save_path)
+                image_paths.append(save_path)
 
-            build_dir = os.path.join(tmpdir, "output")
-            os.makedirs(build_dir, exist_ok=True)
+            print("📷 Saved all uploaded images")
 
-            puzzle_site_path = build_puzzle_site(
+            zip_path = build_site(
                 image_paths=image_paths,
-                labels=filenames,
-                indices=[int(i) for i in indices],
+                filenames=filenames,
+                indices=[int(idx) for idx in indices],
                 target_url=target_url,
                 delivery_mode=delivery_mode,
-                output_dir=build_dir
+                output_folder=os.path.join(tmpdir, "output"),
+                generate_zip=True
             )
 
-            deploy_result = deploy_to_netlify(puzzle_site_path, netlify_token)
-            return jsonify(deploy_result), 200 if deploy_result["success"] else 500
+            print("📦 Site built, starting deploy...")
+
+            deploy_result = deploy_to_netlify(zip_path, netlify_token)
+            if not deploy_result["success"]:
+                raise Exception("Deploy failed: " + deploy_result["error"])
+
+            print("✅ Deploy successful:", deploy_result["url"])
+            return jsonify({"url": deploy_result["url"]}), 200
 
     except Exception as e:
+        print("❌ Exception during /generate-site:", e)
         return jsonify({"error": str(e)}), 500
