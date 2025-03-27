@@ -49,7 +49,7 @@ def generate_site():
 
             print("📷 Saved all uploaded images")
 
-            zip_path = build_puzzle_site(
+            zip_path, _ = build_puzzle_site(
                 image_paths=image_paths,
                 labels=filenames,
                 indices=[int(idx) for idx in indices],
