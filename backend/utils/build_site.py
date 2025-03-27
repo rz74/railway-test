@@ -62,6 +62,8 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
         f.write(delivery_mode)
 
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
-    shutil.make_archive(zip_path[:-4], 'zip', site_path)
+    # shutil.make_archive(zip_path[:-4], 'zip', site_path)
+    shutil.make_archive(zip_path[:-4], 'zip', root_dir=site_path)
+
 
     return zip_path, site_path
