@@ -1,11 +1,8 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import tempfile
-import shutil
 import os
-# from utils.build_site import build_site
-from utils.build_site import build_puzzle_site as build_site
-
+from utils.build_site import build_puzzle_site
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
@@ -14,7 +11,8 @@ CORS(app)
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
-        print("📩 Request received at /generate-site")
+        print("🚀 STARTED /generate-site route")
+
         print("📝 Form keys:", list(request.form.keys()))
         print("📎 File keys:", list(request.files.keys()))
 
@@ -49,26 +47,7 @@ def generate_site():
 
             print("📷 Saved all uploaded images")
 
-            # zip_path = build_site(
-            #     image_paths=image_paths,
-            #     filenames=filenames,
-            #     indices=[int(idx) for idx in indices],
-            #     target_url=target_url,
-            #     delivery_mode=delivery_mode,
-            #     output_folder=os.path.join(tmpdir, "output"),
-            #     generate_zip=True
-            # )
-
-            # zip_path = build_site(
-            #     image_paths=image_paths,
-            #     labels=filenames,
-            #     indices=[int(idx) for idx in indices],
-            #     target_url=target_url,
-            #     delivery_mode=delivery_mode,
-            #     output_dir=os.path.join(tmpdir, "output")
-            # )
-
-            zip_path = build_site(
+            zip_path = build_puzzle_site(
                 image_paths=image_paths,
                 labels=filenames,
                 indices=[int(idx) for idx in indices],
@@ -76,8 +55,6 @@ def generate_site():
                 delivery_mode=delivery_mode,
                 output_dir=os.path.join(tmpdir, "output")
             )
-
-
 
             print("📦 Site built, starting deploy...")
 
