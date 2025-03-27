@@ -73,6 +73,7 @@ def generate_site():
                     as_attachment=True,
                     download_name="puzzle_site.zip"
                 )
+            return send_file(zip_path, as_attachment=True)
 
     except Exception as e:
         print("❌ Exception during /generate-site:", e)
