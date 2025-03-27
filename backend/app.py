@@ -14,7 +14,6 @@ print("🔥 app started")
 def generate_site():
     try:
         print("🚀 STARTED /generate-site route")
-
         print("📝 Form keys:", list(request.form.keys()))
         print("📎 File keys:", list(request.files.keys()))
 
@@ -37,55 +36,43 @@ def generate_site():
         print("🧠 Filenames:", filenames)
         print("🔢 Indices:", indices)
 
-        # Don't use tempfile.TemporaryDirectory() since we want to preserve the ZIP for download
-        working_dir = os.path.join(os.getcwd(), "temp_sites")
-        os.makedirs(working_dir, exist_ok=True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_paths = []
+            for i in range(10):
+                file = request.files.get(f"image{i}")
+                if not file:
+                    raise ValueError(f"Missing image{i}")
+                save_path = os.path.join(tmpdir, f"{i}_{file.filename}")
+                file.save(save_path)
+                image_paths.append(save_path)
 
-        image_paths = []
-        for i in range(10):
-            file = request.files.get(f"image{i}")
-            if not file:
-                raise ValueError(f"Missing image{i}")
-            save_path = os.path.join(working_dir, f"{i}_{file.filename}")
-            file.save(save_path)
-            image_paths.append(save_path)
+            print("📷 Saved all uploaded images")
 
-        print("📷 Saved all uploaded images")
+            zip_path, _ = build_puzzle_site(
+                image_paths=image_paths,
+                labels=filenames,
+                indices=[int(idx) for idx in indices],
+                target_url=target_url,
+                delivery_mode=delivery_mode,
+                output_dir=os.path.join(tmpdir, "output")
+            )
 
-        zip_path, site_path = build_puzzle_site(
-            image_paths=image_paths,
-            labels=filenames,
-            indices=[int(idx) for idx in indices],
-            target_url=target_url,
-            delivery_mode=delivery_mode,
-            output_dir=working_dir
-        )
+            print("📦 Site built, starting deploy...")
 
-        print("📦 Site built, starting deploy...")
+            # Always try to deploy
+            deploy_result = deploy_to_netlify(zip_path, netlify_token)
 
-        # deploy_result = deploy_to_netlify(site_path, netlify_token)
-        # if not deploy_result["success"]:
-        #     raise Exception("Deploy failed: " + deploy_result["error"])
-        
-        if not deploy_result["success"]:
-            print("⚠️ Deploy failed, but sending ZIP for debugging.")
-            return send_file(
-                zip_path,
-                mimetype='application/zip',
-                as_attachment=True,
-                download_name='puzzle_site.zip'
-    )
-
-
-        print("✅ Deploy successful:", deploy_result["url"])
-
-        # Send the zip file to the frontend as a download
-        return send_file(
-            zip_path,
-            mimetype='application/zip',
-            as_attachment=True,
-            download_name='puzzle_site.zip'
-        )
+            if deploy_result["success"]:
+                print("✅ Deploy successful:", deploy_result["url"])
+                return jsonify({"url": deploy_result["url"]}), 200
+            else:
+                print("⚠️ Deploy failed:", deploy_result.get("error"))
+                return send_file(
+                    zip_path,
+                    mimetype="application/zip",
+                    as_attachment=True,
+                    download_name="puzzle_site.zip"
+                )
 
     except Exception as e:
         print("❌ Exception during /generate-site:", e)

@@ -10,10 +10,12 @@ def deploy_to_netlify(site_path, netlify_token):
     zip_path = os.path.join("/tmp" if os.name != 'nt' else ".", zip_filename)
 
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        print("🗂️ Files to be zipped and deployed:")
         for root, _, files in os.walk(site_path):
             for file in files:
                 filepath = os.path.join(root, file)
                 arcname = os.path.relpath(filepath, start=site_path)
+                print(f"  - {arcname}")
                 zipf.write(filepath, arcname)
 
     headers = {
@@ -27,9 +29,7 @@ def deploy_to_netlify(site_path, netlify_token):
         verify=certifi.where()
     )
 
-    # if site_res.status_code != 200:
-    if site_res.status_code not in [200, 201]:
-
+    if site_res.status_code != 200:
         print("❌ Site creation error:", site_res.text)
         return {
             "success": False,
@@ -41,20 +41,20 @@ def deploy_to_netlify(site_path, netlify_token):
     site_id = site_info["id"]
 
     # Step 3: Upload deploy ZIP
-    files = {'file': open(zip_path, 'rb')}
-    deploy_res = requests.post(
-        f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
-        headers=headers,
-        files=files,
-        verify=certifi.where()
-    )
+    with open(zip_path, 'rb') as f:
+        files = {'file': f}
+        deploy_res = requests.post(
+            f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
+            headers=headers,
+            files=files,
+            verify=certifi.where()
+        )
 
-    files['file'].close()
+    # Optionally skip cleanup if you want to inspect the ZIP file locally
     # os.remove(zip_path)
 
-    # if deploy_res.status_code != 200:
-    if site_res.status_code not in [200, 201]:
-
+    if deploy_res.status_code != 200:
+        print("❌ Deploy error:", deploy_res.text)
         return {
             "success": False,
             "error": "Deploy failed",
