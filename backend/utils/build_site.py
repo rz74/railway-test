@@ -20,8 +20,8 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     dest_toml = os.path.join(site_path, "netlify.toml")
     shutil.copy2(source_toml, dest_toml)
 
-    # Copy functions folder from .netlify/functions
-    source_functions = os.path.join(TEMPLATE_SITE_PATH, ".netlify", "functions")
+    # ✅ Corrected source path for functions folder
+    source_functions = os.path.join(TEMPLATE_SITE_PATH, "functions")
     dest_functions = os.path.join(site_path, "netlify", "functions")
     if os.path.exists(source_functions):
         shutil.copytree(source_functions, dest_functions)
@@ -62,8 +62,6 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
         f.write(delivery_mode)
 
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
-    # shutil.make_archive(zip_path[:-4], 'zip', site_path)
-    shutil.make_archive(zip_path[:-4], 'zip', root_dir=site_path)
-
+    shutil.make_archive(zip_path[:-4], 'zip', site_path)
 
     return zip_path, site_path
