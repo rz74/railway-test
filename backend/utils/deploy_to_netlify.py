@@ -27,7 +27,9 @@ def deploy_to_netlify(site_path, netlify_token):
         verify=certifi.where()
     )
 
-    if site_res.status_code != 200:
+    # if site_res.status_code != 200:
+    if site_res.status_code not in [200, 201]:
+
         print("❌ Site creation error:", site_res.text)
         return {
             "success": False,
@@ -50,7 +52,9 @@ def deploy_to_netlify(site_path, netlify_token):
     files['file'].close()
     # os.remove(zip_path)
 
-    if deploy_res.status_code != 200:
+    # if deploy_res.status_code != 200:
+    if site_res.status_code not in [200, 201]:
+
         return {
             "success": False,
             "error": "Deploy failed",

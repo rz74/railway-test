@@ -63,9 +63,19 @@ def generate_site():
 
         print("📦 Site built, starting deploy...")
 
-        deploy_result = deploy_to_netlify(site_path, netlify_token)
+        # deploy_result = deploy_to_netlify(site_path, netlify_token)
+        # if not deploy_result["success"]:
+        #     raise Exception("Deploy failed: " + deploy_result["error"])
+        
         if not deploy_result["success"]:
-            raise Exception("Deploy failed: " + deploy_result["error"])
+            print("⚠️ Deploy failed, but sending ZIP for debugging.")
+            return send_file(
+                zip_path,
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name='puzzle_site.zip'
+    )
+
 
         print("✅ Deploy successful:", deploy_result["url"])
 
