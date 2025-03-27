@@ -27,6 +27,8 @@ def deploy_to_netlify(site_path, netlify_token):
         headers=headers,
         verify=certifi.where()
     )
+    print("❌ Site creation error:", site_res.status_code, site_res.text)
+
 
     if site_res.status_code != 200:
         print("❌ Site creation error:", site_res.text)
