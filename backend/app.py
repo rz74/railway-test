@@ -1,5 +1,4 @@
-
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, make_response
 from flask_cors import CORS
 import tempfile
 import os
@@ -7,16 +6,14 @@ from utils.build_site import build_puzzle_site
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
-# CORS(app, resources={r"/generate-site": {"origins": "*"}})
-CORS(app, resources={r"/generate-site": {"origins": ["http://localhost:5173"]}})
-
+CORS(app, resources={r"/generate-site": {"origins": "*"}})
 
 print("🔥 app started")
+
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
         print("🚀 STARTED /generate-site route")
-
         print("📝 Form keys:", list(request.form.keys()))
         print("📎 File keys:", list(request.files.keys()))
 
@@ -68,7 +65,16 @@ def generate_site():
 
             print("✅ Deploy successful:", deploy_result["url"])
 
-            return send_file(zip_path, as_attachment=True)
+            # Manually send file with headers
+            with open(zip_path, "rb") as f:
+                zip_data = f.read()
+
+            response = make_response(zip_data)
+            response.headers["Content-Type"] = "application/zip"
+            response.headers["Content-Disposition"] = f"attachment; filename=puzzle_site.zip"
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["X-Netlify-URL"] = deploy_result["url"]  # optional custom header
+            return response
 
     except Exception as e:
         print("❌ Exception during /generate-site:", e)
