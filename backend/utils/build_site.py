@@ -13,14 +13,18 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
 
     site_id = str(uuid.uuid4())[:8]
     site_path = os.path.join(output_dir, f"puzzle_{site_id}")
+    os.makedirs(output_dir, exist_ok=True)
     shutil.copytree(TEMPLATE_SITE_PATH, site_path)
 
     # Copy netlify.toml
     source_toml = os.path.join(TEMPLATE_SITE_PATH, "netlify.toml")
     dest_toml = os.path.join(site_path, "netlify.toml")
-    shutil.copy2(source_toml, dest_toml)
+    if os.path.exists(source_toml):
+        shutil.copy2(source_toml, dest_toml)
+    else:
+        print("⚠️ Warning: netlify.toml not found in template_site.")
 
-    # ✅ Corrected source path for functions folder
+    # Copy functions folder
     source_functions = os.path.join(TEMPLATE_SITE_PATH, "functions")
     dest_functions = os.path.join(site_path, "netlify", "functions")
     if os.path.exists(source_functions):
@@ -28,18 +32,12 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     else:
         print("⚠️ Warning: No Netlify functions folder found.")
 
-    # Build label and index maps
-    label_map = {}
-    index_map = {}
-    for i in range(10):
-        label_map[labels[i]] = image_paths[i]
-        index_map[labels[i]] = indices[i]
+    # Build maps
+    label_map = {labels[i]: image_paths[i] for i in range(10)}
+    index_map = {labels[i]: indices[i] for i in range(10)}
+    obfuscation_map = {label: uuid.uuid4().hex[:12] for label in label_map}
 
-    # Obfuscation map (hide original filenames)
-    obfuscation_map = {
-        label: uuid.uuid4().hex[:12] for label in label_map
-    }
-
+    # Encrypt images
     key = os.urandom(32)
     key_b64 = base64.b64encode(key).decode()
 
@@ -48,20 +46,24 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
         obfuscation_map[label]: label_map[label] for label in label_map
     })
 
+    # Save secret files
     secrets_dir = os.path.join(site_path, "secrets")
     os.makedirs(secrets_dir, exist_ok=True)
+
     with open(os.path.join(secrets_dir, "key.txt"), "w") as f:
         f.write(key_b64)
     with open(os.path.join(secrets_dir, "index-map.json"), "w") as f:
-        json.dump(index_map, f)
+        json.dump(index_map, f, indent=2)
     with open(os.path.join(secrets_dir, "obfuscation-map.json"), "w") as f:
-        json.dump(obfuscation_map, f)
+        json.dump(obfuscation_map, f, indent=2)
     with open(os.path.join(secrets_dir, "target.txt"), "w") as f:
         f.write(target_url.strip())
     with open(os.path.join(secrets_dir, "delivery-mode.txt"), "w") as f:
-        f.write(delivery_mode)
+        f.write(delivery_mode.strip())
 
+    # Zip the site folder
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
     shutil.make_archive(zip_path[:-4], 'zip', site_path)
 
+    print(f"📦 Puzzle site generated at {site_path}")
     return zip_path, site_path

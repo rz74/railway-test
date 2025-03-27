@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
 import tempfile
 import os
@@ -14,13 +14,13 @@ print("🔥 app started")
 def generate_site():
     try:
         print("🚀 STARTED /generate-site route")
+
         print("📝 Form keys:", list(request.form.keys()))
         print("📎 File keys:", list(request.files.keys()))
 
         netlify_token = request.form.get("netlifyToken")
         target_url = request.form.get("targetUrl")
         delivery_mode = request.form.get("deliveryMode")
-
         filenames = request.form.getlist("filenames[]")
         indices = request.form.getlist("indices[]")
 
@@ -48,7 +48,7 @@ def generate_site():
 
             print("📷 Saved all uploaded images")
 
-            zip_path, _ = build_puzzle_site(
+            zip_path, site_path = build_puzzle_site(
                 image_paths=image_paths,
                 labels=filenames,
                 indices=[int(idx) for idx in indices],
@@ -57,23 +57,18 @@ def generate_site():
                 output_dir=os.path.join(tmpdir, "output")
             )
 
-            print("📦 Site built, starting deploy...")
+            print("📦 Site built at", zip_path)
 
-            # Always try to deploy
-            deploy_result = deploy_to_netlify(zip_path, netlify_token)
+            deploy_result = deploy_to_netlify(site_path, netlify_token)
+            if not deploy_result["success"]:
+                raise Exception("Deploy failed: " + deploy_result["error"])
 
-            if deploy_result["success"]:
-                print("✅ Deploy successful:", deploy_result["url"])
-                return jsonify({"url": deploy_result["url"]}), 200
-            else:
-                print("⚠️ Deploy failed:", deploy_result.get("error"))
-                return send_file(
-                    zip_path,
-                    mimetype="application/zip",
-                    as_attachment=True,
-                    download_name="puzzle_site.zip"
-                )
-            return send_file(zip_path, as_attachment=True)
+            print("✅ Deployed to:", deploy_result["url"])
+
+            # Optionally include the deploy URL in headers for debugging
+            response = send_file(zip_path, as_attachment=True)
+            response.headers["X-Netlify-URL"] = deploy_result["url"]
+            return response
 
     except Exception as e:
         print("❌ Exception during /generate-site:", e)
