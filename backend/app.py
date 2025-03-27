@@ -7,7 +7,7 @@ from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
 CORS(app)
-
+print("🔥 app started")
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
