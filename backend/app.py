@@ -7,7 +7,9 @@ from utils.build_site import build_puzzle_site
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
-CORS(app, resources={r"/generate-site": {"origins": "*"}})
+# CORS(app, resources={r"/generate-site": {"origins": "*"}})
+CORS(app, resources={r"/generate-site": {"origins": ["http://localhost:5173"]}})
+
 
 print("🔥 app started")
 @app.route("/generate-site", methods=["POST"])
