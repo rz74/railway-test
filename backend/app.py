@@ -6,7 +6,7 @@ from utils.build_site import build_puzzle_site
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
-CORS(app, resources={r"/generate-site": {"origins": "*"}})
+CORS(app)  # Allow all routes and origins
 
 print("🔥 app started")
 
@@ -65,7 +65,6 @@ def generate_site():
 
             print("✅ Deploy successful:", deploy_result["url"])
 
-            # Manually send file with headers
             with open(zip_path, "rb") as f:
                 zip_data = f.read()
 
@@ -73,9 +72,12 @@ def generate_site():
             response.headers["Content-Type"] = "application/zip"
             response.headers["Content-Disposition"] = f"attachment; filename=puzzle_site.zip"
             response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["X-Netlify-URL"] = deploy_result["url"]  # optional custom header
+            response.headers["X-Netlify-URL"] = deploy_result["url"]
             return response
 
     except Exception as e:
         print("❌ Exception during /generate-site:", e)
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
