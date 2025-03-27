@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import tempfile
 import os
@@ -6,10 +6,10 @@ from utils.build_site import build_puzzle_site
 from utils.deploy_to_netlify import deploy_to_netlify
 
 app = Flask(__name__)
-# CORS(app)
 CORS(app, resources={r"/generate-site": {"origins": "*"}})
 
 print("🔥 app started")
+
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
@@ -37,35 +37,45 @@ def generate_site():
         print("🧠 Filenames:", filenames)
         print("🔢 Indices:", indices)
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            image_paths = []
-            for i in range(10):
-                file = request.files.get(f"image{i}")
-                if not file:
-                    raise ValueError(f"Missing image{i}")
-                save_path = os.path.join(tmpdir, f"{i}_{file.filename}")
-                file.save(save_path)
-                image_paths.append(save_path)
+        # Don't use tempfile.TemporaryDirectory() since we want to preserve the ZIP for download
+        working_dir = os.path.join(os.getcwd(), "temp_sites")
+        os.makedirs(working_dir, exist_ok=True)
 
-            print("📷 Saved all uploaded images")
+        image_paths = []
+        for i in range(10):
+            file = request.files.get(f"image{i}")
+            if not file:
+                raise ValueError(f"Missing image{i}")
+            save_path = os.path.join(working_dir, f"{i}_{file.filename}")
+            file.save(save_path)
+            image_paths.append(save_path)
 
-            zip_path, _ = build_puzzle_site(
-                image_paths=image_paths,
-                labels=filenames,
-                indices=[int(idx) for idx in indices],
-                target_url=target_url,
-                delivery_mode=delivery_mode,
-                output_dir=os.path.join(tmpdir, "output")
-            )
+        print("📷 Saved all uploaded images")
 
-            print("📦 Site built, starting deploy...")
+        zip_path, site_path = build_puzzle_site(
+            image_paths=image_paths,
+            labels=filenames,
+            indices=[int(idx) for idx in indices],
+            target_url=target_url,
+            delivery_mode=delivery_mode,
+            output_dir=working_dir
+        )
 
-            deploy_result = deploy_to_netlify(zip_path, netlify_token)
-            if not deploy_result["success"]:
-                raise Exception("Deploy failed: " + deploy_result["error"])
+        print("📦 Site built, starting deploy...")
 
-            print("✅ Deploy successful:", deploy_result["url"])
-            return jsonify({"url": deploy_result["url"]}), 200
+        deploy_result = deploy_to_netlify(site_path, netlify_token)
+        if not deploy_result["success"]:
+            raise Exception("Deploy failed: " + deploy_result["error"])
+
+        print("✅ Deploy successful:", deploy_result["url"])
+
+        # Send the zip file to the frontend as a download
+        return send_file(
+            zip_path,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='puzzle_site.zip'
+        )
 
     except Exception as e:
         print("❌ Exception during /generate-site:", e)
