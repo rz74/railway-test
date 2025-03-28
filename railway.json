@@ -1,0 +1,23 @@
+{
+    "services": [
+      {
+        "name": "backend",
+        "root": "backend",
+        "build": {
+          "builder": "NIXPACKS",
+          "buildCommand": "pip install -r requirements.txt"
+        },
+        "start": "gunicorn app:app --bind 0.0.0.0:$PORT"
+      },
+      {
+        "name": "frontend",
+        "root": "frontend",
+        "build": {
+          "builder": "NIXPACKS",
+          "buildCommand": "npm install && npm run build"
+        },
+        "start": "npm start"
+      }
+    ]
+  }
+  
