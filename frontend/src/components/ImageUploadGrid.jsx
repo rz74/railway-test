@@ -65,7 +65,7 @@ function ImageUploadGrid() {
     formData.append("netlifyToken", netlifyToken);
 
     try {
-      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/generate-site", {
+      const res = await fetch('https://memory-puzzle-web-app-production.up.railway.app/generate-site', {
         method: "POST",
         body: formData,
       });
