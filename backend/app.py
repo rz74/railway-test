@@ -10,7 +10,13 @@ CORS(app)  # Allow all routes and origins
 
 print("🔥 app started")
 
-@app.route("/generate-site", methods=["POST"])
+# @app.route("/generate-site", methods=["POST"])
+
+@app.route("/", methods=["GET"])
+def index():
+    return "🚀 Backend is running!"
+
+
 def generate_site():
     try:
         print("🚀 STARTED /generate-site route")
