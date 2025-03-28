@@ -10,13 +10,11 @@ CORS(app)  # Allow all routes and origins
 
 print("🔥 app started")
 
-# @app.route("/generate-site", methods=["POST"])
-
 @app.route("/", methods=["GET"])
 def index():
     return "🚀 Backend is running!"
 
-
+@app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
         print("🚀 STARTED /generate-site route")
@@ -77,7 +75,7 @@ def generate_site():
             response = make_response(zip_data)
             response.headers["Content-Type"] = "application/zip"
             response.headers["Content-Disposition"] = f"attachment; filename=puzzle_site.zip"
-            response.headers["Access-Control-Allow-Origin"] = "*"  # Optional but helpful
+            response.headers["Access-Control-Allow-Origin"] = "*"
             response.headers["X-Netlify-URL"] = deploy_result["url"]
             return response
 
@@ -85,10 +83,6 @@ def generate_site():
         print("❌ Exception during /generate-site:", e)
         return jsonify({"error": str(e)}), 500
 
-# if __name__ == "__main__":
-#     app.run(host="0.0.0.0", port=10000)
-
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))  # fallback for local dev
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
