@@ -8,6 +8,7 @@ function ImageUploadGrid() {
   const [deliveryMode, setDeliveryMode] = useState('jump');
   const [netlifyToken, setNetlifyToken] = useState('');
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [deployedUrl, setDeployedUrl] = useState('');
 
   const handleFileChange = (index, file) => {
     if (!file) return;
@@ -49,7 +50,7 @@ function ImageUploadGrid() {
   const allFilled = images.every(img => img !== null);
   const allIndexed = indices.every(val => val >= 1 && val <= 10);
   const noDuplicates = getConflictingIndices().size === 0;
-  const formValid = allFilled && allIndexed && noDuplicates && netlifyToken;
+  const formValid = allFilled && allIndexed && noDuplicates && targetUrl && netlifyToken;
 
   const handleSubmit = async () => {
     const formData = new FormData();
@@ -57,7 +58,6 @@ function ImageUploadGrid() {
     images.forEach((file, i) => {
       formData.append(`image${i}`, file);
     });
-
     filenames.forEach(name => formData.append("filenames[]", name));
     indices.forEach(index => formData.append("indices[]", index));
     formData.append("targetUrl", targetUrl);
@@ -65,28 +65,32 @@ function ImageUploadGrid() {
     formData.append("netlifyToken", netlifyToken);
 
     try {
-      // const res = await fetch("http://127.0.0.1:5000/generate-site", {
-      const res = await fetch("https://memory-puzzle-web-app.onrender.com/generate-site", {
-
+      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/generate-site", {
         method: "POST",
         body: formData,
       });
 
-      const result = await res.json();
       if (!res.ok) {
-        alert("❌ Error: " + (result.error || "Something went wrong"));
+        const err = await res.json();
+        alert("❌ Error: " + (err.error || "Something went wrong"));
         return;
       }
 
-      const url = result.url;
-      alert("✅ Deployed: " + url);
-      window.open(url, "_blank");
+      const netlifyUrl = res.headers.get("X-Netlify-URL");
+      setDeployedUrl(netlifyUrl || '');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "puzzle_site.zip";
+      a.click();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
     }
   };
-
   return (
     <div className="space-y-6">
       {images.map((img, i) => {
@@ -116,6 +120,7 @@ function ImageUploadGrid() {
             }}
           >
             <label className="block font-semibold mb-2">Image {i + 1}</label>
+
             <input
               type="file"
               accept="image/*"
@@ -197,6 +202,7 @@ function ImageUploadGrid() {
             />
             Jump to target URL (recommended – works for all sites)
           </label>
+
           <label className="flex items-center gap-2">
             <input
               type="radio"
@@ -204,21 +210,30 @@ function ImageUploadGrid() {
               checked={deliveryMode === 'mirror'}
               onChange={(e) => setDeliveryMode(e.target.value)}
             />
-            Mirror target inside puzzle site (works with GitHub, Notion, etc.)
+            Mirror target inside puzzle site (works with GitHub, Notion, Wikipedia, and some blogs)
           </label>
         </div>
       </div>
 
-      <div>
+      <div className="mt-4">
         <label className="block font-semibold mb-2">Netlify Access Token</label>
         <input
-          type="password"
+          type="text"
           value={netlifyToken}
           onChange={(e) => setNetlifyToken(e.target.value)}
           className="w-full rounded px-2 py-1 text-black"
-          placeholder="Paste your Netlify token"
+          placeholder="Enter your Netlify token"
         />
       </div>
+
+      {deployedUrl && (
+        <div className="mt-4 text-green-400 text-sm">
+          ✅ Site deployed at:{' '}
+          <a href={deployedUrl} target="_blank" rel="noopener noreferrer" className="underline">
+            {deployedUrl}
+          </a>
+        </div>
+      )}
 
       <button
         onClick={handleSubmit}
@@ -227,7 +242,7 @@ function ImageUploadGrid() {
           formValid ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-600 cursor-not-allowed'
         }`}
       >
-        Build & Deploy Puzzle Site
+        Build Puzzle Site
       </button>
     </div>
   );

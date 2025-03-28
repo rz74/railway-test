@@ -71,7 +71,7 @@ def generate_site():
             response = make_response(zip_data)
             response.headers["Content-Type"] = "application/zip"
             response.headers["Content-Disposition"] = f"attachment; filename=puzzle_site.zip"
-            # response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Origin"] = "*"  # Optional but helpful
             response.headers["X-Netlify-URL"] = deploy_result["url"]
             return response
 
