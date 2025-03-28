@@ -5,7 +5,8 @@
     },
     "start": {
       "root": "backend",
-      "startCommand": "gunicorn app:app --bind 0.0.0.0:$PORT"
+      "startCommand": "gunicorn app:app --chdir backend --bind 0.0.0.0:10000"
+      
     }
   }
   
