@@ -1,25 +1,34 @@
-from flask import Flask, request, jsonify, send_file, make_response
+
+from flask import Flask, request, jsonify, send_file, make_response, send_from_directory
 from flask_cors import CORS
 import tempfile
 import os
 from utils.build_site import build_puzzle_site
 from utils.deploy_to_netlify import deploy_to_netlify
+import logging
 
 app = Flask(__name__)
 CORS(app)  # Allow all routes and origins
 
-print("🔥 app started")
+logging.basicConfig(level=logging.INFO)
+print("ðŸ”¥ app started")
 
 @app.route("/", methods=["GET"])
 def index():
-    return "🚀 Backend is running!"
+    logging.info("Index route accessed")
+    return "ðŸš€ Backend is running!"
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
-        print("🚀 STARTED /generate-site route")
-        print("📝 Form keys:", list(request.form.keys()))
-        print("📎 File keys:", list(request.files.keys()))
+        logging.info("ðŸš€ STARTED /generate-site route")
+        logging.info("ðŸ“ Form keys: %s", list(request.form.keys()))
+        logging.info("ðŸ“Ž File keys: %s", list(request.files.keys()))
 
         netlify_token = request.form.get("netlifyToken")
         target_url = request.form.get("targetUrl")
@@ -35,10 +44,10 @@ def generate_site():
         if not filenames or not indices or len(filenames) != 10 or len(indices) != 10:
             raise ValueError("Expected 10 filenames and 10 indices")
 
-        print("✅ Received target:", target_url)
-        print("🧩 Delivery mode:", delivery_mode)
-        print("🧠 Filenames:", filenames)
-        print("🔢 Indices:", indices)
+        logging.info("âœ… Received target: %s", target_url)
+        logging.info("ðŸ§© Delivery mode: %s", delivery_mode)
+        logging.info("ðŸ§  Filenames: %s", filenames)
+        logging.info("ðŸ”¢ Indices: %s", indices)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             image_paths = []
@@ -50,7 +59,7 @@ def generate_site():
                 file.save(save_path)
                 image_paths.append(save_path)
 
-            print("📷 Saved all uploaded images")
+            logging.info("ðŸ“· Saved all uploaded images")
 
             zip_path, site_path = build_puzzle_site(
                 image_paths=image_paths,
@@ -61,13 +70,13 @@ def generate_site():
                 output_dir=os.path.join(tmpdir, "output")
             )
 
-            print("📦 Site built, starting deploy...")
+            logging.info("ðŸ“¦ Site built, starting deploy...")
 
             deploy_result = deploy_to_netlify(site_path, netlify_token)
             if not deploy_result["success"]:
                 raise Exception("Deploy failed: " + deploy_result["error"])
 
-            print("✅ Deploy successful:", deploy_result["url"])
+            logging.info("âœ… Deploy successful: %s", deploy_result["url"])
 
             with open(zip_path, "rb") as f:
                 zip_data = f.read()
@@ -80,7 +89,7 @@ def generate_site():
             return response
 
     except Exception as e:
-        print("❌ Exception during /generate-site:", e)
+        logging.error("âŒ Exception during /generate-site: %s", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
