@@ -105,7 +105,7 @@
     let failCount = 0;
 
     async function fetchKey() {
-      const res = await fetch("/.netlify/functions/get-decryption-key");
+      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-decryption-key");
       const base64Key = await res.text();
       const rawKey = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
       return crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["decrypt"]);
@@ -119,23 +119,23 @@
     }
 
     async function fetchIndexMap() {
-      const res = await fetch("/.netlify/functions/get-index-map");
+      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-index-map");
       return await res.json();
     }
 
     async function fetchObfuscationMap() {
-      const res = await fetch("/.netlify/functions/get-obfuscation-map");
+      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-obfuscation-map");
       return await res.json();
     }
 
     // async function fetchNotionUrl() {
-    //   // const res = await fetch("/.netlify/functions/get-notion-url");
+    //   // const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-notion-url");
     //   // return await res.text();
-    //   return "/.netlify/functions/mirror-github";
+    //   return "https://memory-puzzle-web-app-production.up.railway.app/get-notion-url";
     // }
     async function fetchNotionUrl() {
     try {
-      const res = await fetch("/.netlify/functions/get-notion-url");
+      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-notion-url");
       if (!res.ok) throw new Error("Failed to fetch target URL");
       return await res.text();
     } catch (err) {

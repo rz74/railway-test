@@ -67,3 +67,10 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
 
     print(f"📦 Puzzle site generated at {site_path}")
     return zip_path, site_path
+
+    # Copy secrets for serving
+    final_secrets_dir = os.path.join("backend", "secrets")
+    os.makedirs(final_secrets_dir, exist_ok=True)
+    for file in ["key.txt", "index-map.json", "obfuscation-map.json", "target.txt", "delivery-mode.txt"]:
+        shutil.copy(os.path.join(secrets_dir, file), os.path.join(final_secrets_dir, file))
+

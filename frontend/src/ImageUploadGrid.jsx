@@ -6,9 +6,8 @@ function ImageUploadGrid() {
   const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
   const [targetUrl, setTargetUrl] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('jump');
-  const [netlifyToken, setNetlifyToken] = useState('');
   const [dragOverIndex, setDragOverIndex] = useState(null);
-  const [deployedUrl, setDeployedUrl] = useState('');
+  const [backendSecretPath, setBackendSecretPath] = useState('');
 
   const handleFileChange = (index, file) => {
     if (!file) return;
@@ -50,7 +49,7 @@ function ImageUploadGrid() {
   const allFilled = images.every(img => img !== null);
   const allIndexed = indices.every(val => val >= 1 && val <= 10);
   const noDuplicates = getConflictingIndices().size === 0;
-  const formValid = allFilled && allIndexed && noDuplicates && targetUrl && netlifyToken;
+  const formValid = allFilled && allIndexed && noDuplicates && targetUrl;
 
   const handleSubmit = async () => {
     const formData = new FormData();
@@ -62,7 +61,6 @@ function ImageUploadGrid() {
     indices.forEach(index => formData.append("indices[]", index));
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
-    formData.append("netlifyToken", netlifyToken);
 
     try {
       const res = await fetch('https://memory-puzzle-web-app-production.up.railway.app/generate-site', {
@@ -76,8 +74,10 @@ function ImageUploadGrid() {
         return;
       }
 
-      const netlifyUrl = res.headers.get("X-Netlify-URL");
-      setDeployedUrl(netlifyUrl || '');
+      const secretPath = res.headers.get("X-Secret-Path");
+      if (secretPath) {
+        setBackendSecretPath(secretPath);
+      }
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -178,9 +178,8 @@ function ImageUploadGrid() {
           </div>
         );
       })}
-
       <div>
-        <label className="block font-semibold mb-2">Target URL</label>
+        <label className="block font-semibold mb-2 mt-4">Target URL</label>
         <input
           type="url"
           value={targetUrl}
@@ -216,19 +215,20 @@ function ImageUploadGrid() {
       </div>
 
       <div className="mt-4">
-        <label className="block font-semibold mb-2">Netlify Access Token</label>
+        <label className="block font-semibold mb-2">Optional Deployment Token</label>
         <input
           type="text"
           value={netlifyToken}
           onChange={(e) => setNetlifyToken(e.target.value)}
           className="w-full rounded px-2 py-1 text-black"
-          placeholder="Enter your Netlify token"
+          placeholder="(No longer required)"
+          disabled
         />
       </div>
 
       {deployedUrl && (
         <div className="mt-4 text-green-400 text-sm">
-          ✅ Site deployed at:{' '}
+          ✅ Site hosted at:{' '}
           <a href={deployedUrl} target="_blank" rel="noopener noreferrer" className="underline">
             {deployedUrl}
           </a>
