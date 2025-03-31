@@ -1,13 +1,17 @@
 import React from 'react';
-import ImageUploadGrid from './components/ImageUploadGrid';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
 
-function App() {
-  return (
-    <div className="p-6 text-white bg-gray-900 min-h-screen">
-      <h1 className="text-3xl font-bold mb-4">Memory Puzzle Upload</h1>
-      <ImageUploadGrid />
-    </div>
+const rootElement = document.getElementById('root');
+
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
   );
+} else {
+  console.error("❌ No root element found to mount React app.");
 }
-
-export default App;
