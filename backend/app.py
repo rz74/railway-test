@@ -3,16 +3,13 @@ from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
-from utils.static_handlers import serve_key, serve_index_map, serve_obfuscation_map, serve_target, serve_mode
-
-from static_handlers import (
+from utils.static_handlers import (
     serve_key,
     serve_index_map,
     serve_obfuscation_map,
     serve_target,
     serve_mode,
 )
-
 
 app = Flask(__name__)
 CORS(app)
@@ -21,27 +18,28 @@ CORS(app)
 def index():
     return "✅ Puzzle Backend is running"
 
-@app.route("/key.txt", methods=["GET"])
+# === Secret file serving routes ===
+@app.route("/get-key", methods=["GET"])
 def serve_key_route():
     return serve_key()
 
-@app.route("/index-map.json", methods=["GET"])
+@app.route("/get-index-map", methods=["GET"])
 def serve_index_map_route():
     return serve_index_map()
 
-@app.route("/obfuscation-map.json", methods=["GET"])
+@app.route("/get-obfuscation-map", methods=["GET"])
 def serve_obfuscation_map_route():
     return serve_obfuscation_map()
 
-@app.route("/target.txt", methods=["GET"])
+@app.route("/get-target", methods=["GET"])
 def serve_target_route():
     return serve_target()
 
-@app.route("/delivery-mode.txt", methods=["GET"])
+@app.route("/get-delivery-mode", methods=["GET"])
 def serve_mode_route():
     return serve_mode()
 
-
+# === Site generation route ===
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
@@ -54,7 +52,11 @@ def generate_site():
         delivery_mode = form.get("deliveryMode")
 
         if len(filenames) != 10 or len(indices) != 10:
-            return jsonify({"error": "Expected 10 filenames and indices"}), 400
+            return jsonify({"error": "Expected 10 filenames and 10 indices"}), 400
+        if not target_url:
+            return jsonify({"error": "Missing target URL"}), 400
+        if not delivery_mode:
+            return jsonify({"error": "Missing delivery mode"}), 400
 
         with tempfile.TemporaryDirectory() as tmpdir:
             image_paths = []
@@ -84,14 +86,7 @@ def generate_site():
             return response
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# Secure secret fetchers
-app.route("/get-key")(serve_key)
-app.route("/get-index-map")(serve_index_map)
-app.route("/get-obfuscation-map")(serve_obfuscation_map)
-app.route("/get-target")(serve_target)
-app.route("/get-delivery-mode")(serve_mode)
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
