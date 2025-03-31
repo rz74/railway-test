@@ -1,0 +1,4 @@
+# Exclude all files in the secrets folder
+backend/secrets/*
+# But allow the folder itself to be tracked
+!backend/secrets/.gitkeep
