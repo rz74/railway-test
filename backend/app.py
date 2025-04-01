@@ -3,6 +3,8 @@ from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
+
+
 # from utils.static_handlers import (
 #     serve_key,
 #     serve_index_map,
@@ -13,9 +15,20 @@ from utils.build_site import build_puzzle_site
 
 from static_handlers import serve_key, serve_index_map, serve_obfuscation_map, serve_target, serve_mode
 
+from flask import send_from_directory
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+@app.route("/")
+def index():
+    print("✅ Root / route accessed")
+    return "✅ Puzzle Backend is running"
+
 
 @app.route("/")
 def index():
