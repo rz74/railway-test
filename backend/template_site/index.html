@@ -1,16 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-QMX90CZV86"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-QMX90CZV86'); -->
-  </script>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Secret Journal Access</title>
   <style>
     body {
@@ -85,15 +77,15 @@
 </head>
 <body>
   <h1>
-  Click in the sequence of occurrence:<br>
-  <span style="font-size: 0.7em; color: #aaa;">refresh the page for a new puzzle</span>
+    Click in the sequence of occurrence:<br>
+    <span style="font-size: 0.7em; color: #aaa;">refresh the page for a new puzzle</span>
   </h1>
 
   <div class="grid" id="image-grid"></div>
   <div id="error"></div>
-  <div id="overlay">Wrong again? Someone fell asleep in history classes quite a bit huh?</div>
+  <div id="overlay">Wrong again? Someone fell asleep in history class quite a bit huh?</div>
   <div id="footer">
-    <a href="https://github.com/rz74/rzwebsite" target="_blank">New: View source on GitHub!!!</a>
+    <a href="https://github.com/rz74/rzwebsite" target="_blank">View source on GitHub</a>
   </div>
 
   <script>
@@ -105,128 +97,94 @@
     let failCount = 0;
 
     async function fetchKey() {
-      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-decryption-key");
+      const res = await fetch("/get-key");
       const base64Key = await res.text();
       const rawKey = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
       return crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["decrypt"]);
     }
 
-    function splitEncryptedData(buffer) {
-      const nonce = buffer.slice(0, 12);
-      const tag = buffer.slice(12, 28);
-      const ciphertext = buffer.slice(28);
-      return { nonce, tag, ciphertext };
-    }
-
     async function fetchIndexMap() {
-      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-index-map");
+      const res = await fetch("/get-index-map");
       return await res.json();
     }
 
     async function fetchObfuscationMap() {
-      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-obfuscation-map");
+      const res = await fetch("/get-obfuscation-map");
       return await res.json();
     }
 
-    // async function fetchNotionUrl() {
-    //   // const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-notion-url");
-    //   // return await res.text();
-    //   return "https://memory-puzzle-web-app-production.up.railway.app/get-notion-url";
-    // }
-    async function fetchNotionUrl() {
-    try {
-      const res = await fetch("https://memory-puzzle-web-app-production.up.railway.app/get-notion-url");
-      if (!res.ok) throw new Error("Failed to fetch target URL");
-      return await res.text();
-    } catch (err) {
-      console.error("❌ Error loading target URL:", err);
-      return "/";
+    async function fetchTargetUrl() {
+      try {
+        const res = await fetch("/get-target");
+        if (!res.ok) throw new Error("Failed to fetch target URL");
+        return await res.text();
+      } catch (err) {
+        console.error("❌ Error loading target URL:", err);
+        return "/";
+      }
     }
-  }
-
 
     async function decryptImage(encFilename) {
-    try {
-      const encPath = `/encrypted/${encFilename}`;
-      const res = await fetch(encPath);
+      try {
+        const encPath = `/encrypted/${encFilename}`;
+        const res = await fetch(encPath);
+        if (!res.ok) throw new Error(`Fetch failed: ${encPath}`);
 
-      if (!res.ok) {
-        throw new Error(`Failed to fetch ${encPath}, status ${res.status}`);
+        const buffer = await res.arrayBuffer();
+        if (buffer.byteLength < 28) throw new Error("Encrypted file is too small");
+
+        const nonce = buffer.slice(0, 12);
+        const tag = buffer.slice(12, 28);
+        const ciphertext = buffer.slice(28);
+        const key = await fetchKey();
+
+        const combined = new Uint8Array(ciphertext.byteLength + tag.byteLength);
+        combined.set(new Uint8Array(ciphertext), 0);
+        combined.set(new Uint8Array(tag), ciphertext.byteLength);
+
+        const decrypted = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: nonce, tagLength: 128 },
+          key,
+          combined
+        );
+
+        return URL.createObjectURL(new Blob([decrypted], { type: "image/jpeg" }));
+      } catch (err) {
+        console.error(`🔴 Decryption failed for ${encFilename}:`, err);
+        return "";
       }
-
-      const buffer = await res.arrayBuffer();
-
-      if (buffer.byteLength < 28) {
-        throw new Error(`${encFilename} is too small to contain nonce+tag+ciphertext`);
-      }
-
-      const nonce = buffer.slice(0, 12);
-      const tag = buffer.slice(12, 28);
-      const ciphertext = buffer.slice(28);
-
-      const key = await fetchKey();
-
-      const combined = new Uint8Array(ciphertext.byteLength + tag.byteLength);
-      combined.set(new Uint8Array(ciphertext), 0);
-      combined.set(new Uint8Array(tag), ciphertext.byteLength);
-
-      const decrypted = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv: nonce, tagLength: 128 },
-        key,
-        combined
-      );
-
-      const blob = new Blob([decrypted], { type: "image/jpeg" });
-      return URL.createObjectURL(blob);
-    } catch (err) {
-      console.error(`🔴 Decryption failed for ${encFilename}:`, err);
-      return "";
-    }
-  }
-
-
-
-
-
-    async function fetchAllLabels() {
-      const indexMap = await fetchIndexMap();
-      return Object.keys(indexMap);
     }
 
     async function init() {
-      const allImages = await fetchAllLabels();
+      const allImages = await fetchIndexMap().then(map => Object.keys(map));
       const indexMap = await fetchIndexMap();
       const obfuscationMap = await fetchObfuscationMap();
-      const notionUrl = await fetchNotionUrl();
+      const targetUrl = await fetchTargetUrl();
       const selected = allImages.sort(() => 0.5 - Math.random()).slice(0, 4);
       const correctOrder = selected.slice().sort((a, b) => indexMap[a] - indexMap[b]);
 
       for (const label of selected) {
         const encFilename = obfuscationMap[label];
         const img = document.createElement("img");
-        img.alt = "capy image";
+        img.alt = "puzzle image";
         img.dataset.label = label;
-        img.style.opacity = 0;
-        img.style.transform = "scale(0.8)";
 
         decryptImage(encFilename).then(url => {
           img.src = url;
-          setTimeout(() => {
-            img.style.transition = "opacity 0.5s, transform 0.5s";
-            img.style.opacity = 1;
-            img.style.transform = "scale(1)";
-          }, 700);
+          img.style.transition = "opacity 0.5s, transform 0.5s";
+          img.style.opacity = 1;
+          img.style.transform = "scale(1)";
         });
 
-        img.addEventListener("click", async () => {
+        img.addEventListener("click", () => {
           if (userSequence.length >= 4) return;
           img.classList.add("clicked");
           userSequence.push(label);
 
           if (userSequence.length === 4) {
-            const isCorrect = userSequence.every((val, i) => val === correctOrder[i]);
-            if (isCorrect) {
-              window.location.href = notionUrl;
+            const correct = userSequence.every((val, i) => val === correctOrder[i]);
+            if (correct) {
+              window.location.href = targetUrl;
             } else {
               failCount++;
               errorDiv.textContent = "Incorrect sequence. Try again.";
@@ -234,9 +192,7 @@
               userSequence = [];
               if (failCount >= 2) {
                 overlay.style.display = "flex";
-                setTimeout(() => {
-                  overlay.style.display = "none";
-                }, 3000);
+                setTimeout(() => (overlay.style.display = "none"), 3000);
                 failCount = 0;
               }
             }
