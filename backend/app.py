@@ -4,7 +4,7 @@ from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
-from utils.static_handlers import (
+from static_handlers import (
     serve_key,
     serve_index_map,
     serve_obfuscation_map,
