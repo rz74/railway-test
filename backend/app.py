@@ -1,38 +1,28 @@
-from flask import Flask, request, jsonify, send_file, make_response
+from flask import Flask, request, jsonify, send_file, make_response, send_from_directory
 from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
-
-
-# from utils.static_handlers import (
-#     serve_key,
-#     serve_index_map,
-#     serve_obfuscation_map,
-#     serve_target,
-#     serve_mode,
-# )
-
-from static_handlers import serve_key, serve_index_map, serve_obfuscation_map, serve_target, serve_mode
-
-from flask import send_from_directory
+from static_handlers import (
+    serve_key,
+    serve_index_map,
+    serve_obfuscation_map,
+    serve_target,
+    serve_mode,
+)
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 @app.route("/")
 def index():
     print("✅ Root / route accessed")
     return "✅ Puzzle Backend is running"
 
-
-@app.route("/")
-def index():
-    return "✅ Puzzle Backend is running"
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # === Secret file serving routes ===
 @app.route("/get-key", methods=["GET"])
@@ -68,7 +58,7 @@ def generate_site():
         delivery_mode = form.get("deliveryMode")
 
         if len(filenames) != 10 or len(indices) != 10:
-            return jsonify({"error": "Expected 10 filenames and 10 indices"}), 400
+            return jsonify({"error": "Expected 10 filenames and indices"}), 400
         if not target_url:
             return jsonify({"error": "Missing target URL"}), 400
         if not delivery_mode:
@@ -102,6 +92,7 @@ def generate_site():
             return response
 
     except Exception as e:
+        print("❌ Exception in /generate-site:", str(e))
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 if __name__ == "__main__":
