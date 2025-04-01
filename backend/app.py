@@ -1,9 +1,10 @@
+
 from flask import Flask, request, jsonify, send_file, make_response, send_from_directory
 from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
-from static_handlers import (
+from utils.static_handlers import (
     serve_key,
     serve_index_map,
     serve_obfuscation_map,
@@ -14,15 +15,14 @@ from static_handlers import (
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/")
-def index():
-    print("✅ Root / route accessed")
-    return "✅ Puzzle Backend is running"
-
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+@app.route("/")
+def index():
+    return "✅ Puzzle Backend is running"
 
 # === Secret file serving routes ===
 @app.route("/get-key", methods=["GET"])
@@ -92,7 +92,6 @@ def generate_site():
             return response
 
     except Exception as e:
-        print("❌ Exception in /generate-site:", str(e))
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 if __name__ == "__main__":
