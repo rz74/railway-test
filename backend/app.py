@@ -3,13 +3,16 @@ from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
-from utils.static_handlers import (
-    serve_key,
-    serve_index_map,
-    serve_obfuscation_map,
-    serve_target,
-    serve_mode,
-)
+# from utils.static_handlers import (
+#     serve_key,
+#     serve_index_map,
+#     serve_obfuscation_map,
+#     serve_target,
+#     serve_mode,
+# )
+
+from static_handlers import serve_key, serve_index_map, serve_obfuscation_map, serve_target, serve_mode
+
 
 app = Flask(__name__)
 CORS(app)
