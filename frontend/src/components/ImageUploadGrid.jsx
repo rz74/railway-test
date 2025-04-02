@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { BACKEND_URL } from '../path_config';
+// import { BACKEND_URL } from '../path_config';
+import { BACKEND_URL } from '../../path_config';
+
 
 function ImageUploadGrid() {
   const [images, setImages] = useState(Array(10).fill(null));
