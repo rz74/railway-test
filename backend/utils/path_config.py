@@ -22,3 +22,6 @@ MODE_FILE = "delivery-mode.txt"
 # === Helper for full secret file path ===
 def secret_path(filename: str) -> str:
     return os.path.join(SECRETS_DIR, filename)
+
+# === Static directory ===
+STATIC_DIR = os.path.join(BASE_DIR, "static")
