@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BACKEND_URL } from '../path_config';
 
 function ImageUploadGrid() {
   const [images, setImages] = useState(Array(10).fill(null));
@@ -62,10 +63,22 @@ function ImageUploadGrid() {
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
 
+    
+    
+
+    
+    
+
+
     try {
-      const res = await fetch('/generate-site', {
+      // const res = await fetch('/generate-site', {
+      //   method: "POST",
+      //   body: formData,
+      const res = await fetch(`${BACKEND_URL}/generate-site`, {
         method: "POST",
         body: formData,
+
+
       });
 
       if (!res.ok) {
