@@ -1,3 +1,7 @@
-// frontend/path_config.js
+// frontend/src/path_config.js
 
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000';
+// Use this in production
+export const BACKEND_URL = 'web-production-5f72.up.railway.app';
+
+// Optional: override with env var for local dev
+// export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000';
