@@ -3,7 +3,7 @@ from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
-from utils.path_config import STATIC_DIR  # 👈 centralized path
+from utils.path_config import STATIC_DIR  # central path config
 from static_handlers import (
     serve_key,
     serve_index_map,
@@ -15,14 +15,10 @@ from static_handlers import (
 app = Flask(__name__)
 CORS(app)
 
+# === Favicon route ===
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(STATIC_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
-@app.route("/")
-def index():
-    print("✅ Root / route accessed")
-    return "✅ Puzzle Backend is running"
 
 # === Secret file serving routes ===
 @app.route("/get-key", methods=["GET"])
@@ -93,6 +89,19 @@ def generate_site():
 
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+# === Serve frontend files ===
+@app.route("/assets/<path:path>")
+def serve_assets(path):
+    return send_from_directory(os.path.join(STATIC_DIR, "assets"), path)
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path):
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return send_from_directory(STATIC_DIR, "index.html")
+    return "⚠️ Frontend not built yet.", 404
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))

@@ -1,5 +1,6 @@
 import React from 'react';
 import ImageUploadGrid from './components/ImageUploadGrid';
+import './index.css'; // ✅ Ensure this is correct based on your move
 
 function App() {
   return (
