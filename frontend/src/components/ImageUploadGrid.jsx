@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { BACKEND_URL } from '../../path_config';
 
 function ImageUploadGrid() {
   const [images, setImages] = useState(Array(10).fill(null));
@@ -7,8 +6,8 @@ function ImageUploadGrid() {
   const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
   const [targetUrl, setTargetUrl] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('jump');
-  const [deployedUrl, setDeployedUrl] = useState('');
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [deployedUrl, setDeployedUrl] = useState('');
 
   const handleFileChange = (index, file) => {
     if (!file) return;
@@ -54,14 +53,17 @@ function ImageUploadGrid() {
 
   const handleSubmit = async () => {
     const formData = new FormData();
-    images.forEach((file, i) => formData.append(`image${i}`, file));
+
+    images.forEach((file, i) => {
+      formData.append(`image${i}`, file);
+    });
     filenames.forEach(name => formData.append("filenames[]", name));
     indices.forEach(index => formData.append("indices[]", index));
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/generate-site`, {
+      const res = await fetch('/generate-site', {
         method: "POST",
         body: formData,
       });
@@ -79,7 +81,9 @@ function ImageUploadGrid() {
       a.download = "puzzle_site.zip";
       a.click();
       window.URL.revokeObjectURL(url);
-      setDeployedUrl("✅ Download complete!");
+
+      // TEMPORARY: use dummy URL for display
+      setDeployedUrl("https://deployed-site.example.com");
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
@@ -94,14 +98,21 @@ function ImageUploadGrid() {
         return (
           <div
             key={i}
-            className={`bg-gray-800 p-4 rounded relative border-2 transition ${dragOverIndex === i ? 'border-blue-400' : 'border-transparent'}`}
-            onDragOver={(e) => { e.preventDefault(); setDragOverIndex(i); }}
+            className={`bg-gray-800 p-4 rounded relative border-2 transition ${
+              dragOverIndex === i ? 'border-blue-400' : 'border-transparent'
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverIndex(i);
+            }}
             onDragLeave={() => setDragOverIndex(null)}
             onDrop={(e) => {
               e.preventDefault();
               setDragOverIndex(null);
               const file = e.dataTransfer.files?.[0];
-              if (file && file.type.startsWith('image/')) handleFileChange(i, file);
+              if (file && file.type.startsWith('image/')) {
+                handleFileChange(i, file);
+              }
             }}
           >
             <label className="block font-semibold mb-2">Image {i + 1}</label>
@@ -131,28 +142,33 @@ function ImageUploadGrid() {
             )}
 
             {img && (
-              <>
+              <div className="mt-2">
+                <label className="text-sm text-gray-300">Rename:</label>
                 <input
                   type="text"
                   value={filenames[i]}
                   onChange={(e) => handleRename(i, e.target.value)}
-                  className="w-full mt-2 px-2 py-1 rounded text-black"
-                  placeholder="Rename"
+                  className="w-full mt-1 rounded px-2 py-1 text-black"
                 />
-                <select
-                  value={indices[i]}
-                  onChange={(e) => handleIndexChange(i, e.target.value)}
-                  className="mt-2 w-full px-2 py-1 rounded text-black"
-                >
-                  <option value="">Select index</option>
-                  {[...Array(10)].map((_, idx) => {
-                    const val = idx + 1;
-                    const isUsed = indices.includes(val) && indices[i] !== val;
-                    return <option key={val} value={val} disabled={isUsed}>{val}</option>;
-                  })}
-                </select>
-              </>
+              </div>
             )}
+
+            <select
+              value={indices[i] || ''}
+              onChange={(e) => handleIndexChange(i, e.target.value)}
+              className="mt-2 w-full rounded px-2 py-1 text-black"
+            >
+              <option value="">Select index</option>
+              {[...Array(10)].map((_, idx) => {
+                const val = idx + 1;
+                const isUsed = indices.includes(val) && indices[i] !== val;
+                return (
+                  <option key={val} value={val} disabled={isUsed}>
+                    {val}
+                  </option>
+                );
+              })}
+            </select>
           </div>
         );
       })}
@@ -163,45 +179,38 @@ function ImageUploadGrid() {
           type="url"
           value={targetUrl}
           onChange={(e) => setTargetUrl(e.target.value)}
-          className="w-full px-2 py-1 rounded text-black"
+          className="w-full rounded px-2 py-1 text-black"
           placeholder="https://example.com"
         />
       </div>
 
       <div className="mt-4">
-        <label className="block font-semibold mb-2">Delivery Method</label>
-        <div className="flex flex-col gap-2 text-sm text-gray-300">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              value="jump"
-              checked={deliveryMode === 'jump'}
-              onChange={(e) => setDeliveryMode(e.target.value)}
-            />
-            Jump to target URL
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              value="mirror"
-              checked={deliveryMode === 'mirror'}
-              onChange={(e) => setDeliveryMode(e.target.value)}
-            />
-            Mirror target inside puzzle site
-          </label>
-        </div>
+        <label className="block font-semibold mb-2">Delivery Mode</label>
+        <select
+          value={deliveryMode}
+          onChange={(e) => setDeliveryMode(e.target.value)}
+          className="w-full rounded px-2 py-1 text-black"
+        >
+          <option value="jump">Jump (redirect)</option>
+          <option value="mirror">Mirror (embed)</option>
+        </select>
       </div>
 
       {deployedUrl && (
         <div className="mt-4 text-green-400 text-sm">
-          {deployedUrl}
+          ✅ Site deployed at:{' '}
+          <a href={deployedUrl} target="_blank" rel="noopener noreferrer" className="underline">
+            {deployedUrl}
+          </a>
         </div>
       )}
 
       <button
         onClick={handleSubmit}
         disabled={!formValid}
-        className={`px-4 py-2 rounded mt-4 text-white ${formValid ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-600 cursor-not-allowed'}`}
+        className={`px-4 py-2 rounded mt-4 text-white ${
+          formValid ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-600 cursor-not-allowed'
+        }`}
       >
         Build Puzzle Site
       </button>
