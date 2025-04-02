@@ -6,6 +6,8 @@ import shutil
 from .encrypt import encrypt_images
 from utils.path_config import TEMPLATE_SITE_DIR, SECRETS_DIR
 
+PATCHED_INDEX_PATH = os.path.join(os.path.dirname(__file__), "../template_site/index.html")
+
 def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, output_dir):
     if not os.path.exists(TEMPLATE_SITE_DIR):
         raise Exception("Missing template_site/ folder.")
@@ -14,6 +16,13 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     site_path = os.path.join(output_dir, f"puzzle_{site_id}")
     os.makedirs(output_dir, exist_ok=True)
     shutil.copytree(TEMPLATE_SITE_DIR, site_path)
+
+    # 🧠 Replace index.html with patched relative version
+    if os.path.exists(PATCHED_INDEX_PATH):
+        shutil.copy(PATCHED_INDEX_PATH, os.path.join(site_path, "index.html"))
+        print("🔧 Replaced index.html with patched version (relative fetch paths)")
+    else:
+        print("⚠️ Patched index.html not found. Using default index.html")
 
     # Map filenames
     label_map = {labels[i]: image_paths[i] for i in range(10)}
@@ -27,7 +36,7 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     # Encrypt and store in site folder
     encrypted_dir = os.path.join(site_path, "encrypted")
     encrypt_images(
-        image_paths=image_paths,  # ✅ Fixed: add missing argument
+        image_paths=image_paths,
         key=key,
         output_dir=encrypted_dir,
         label_to_obfuscated={obfuscation_map[label]: label_map[label] for label in label_map}

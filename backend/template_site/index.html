@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Secret Journal Access</title>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Secret Journal Access</title>
+<style>
     body {
       background: #111;
       color: #fff;
@@ -76,19 +77,17 @@
   </style>
 </head>
 <body>
-  <h1>
-    Click in the sequence of occurrence:<br>
-    <span style="font-size: 0.7em; color: #aaa;">refresh the page for a new puzzle</span>
-  </h1>
-
-  <div class="grid" id="image-grid"></div>
-  <div id="error"></div>
-  <div id="overlay">Wrong again? Someone fell asleep in history class quite a bit huh?</div>
-  <div id="footer">
-    <a href="https://github.com/rz74/rzwebsite" target="_blank">View source on GitHub</a>
-  </div>
-
-  <script>
+<h1>
+    Click in the sequence of occurrence:<br/>
+<span style="font-size: 0.7em; color: #aaa;">refresh the page for a new puzzle</span>
+</h1>
+<div class="grid" id="image-grid"></div>
+<div id="error"></div>
+<div id="overlay">Wrong again? Someone fell asleep in history class quite a bit huh?</div>
+<div id="footer">
+<a href="https://github.com/rz74/rzwebsite" target="_blank">View source on GitHub</a>
+</div>
+<script>
     const grid = document.getElementById("image-grid");
     const errorDiv = document.getElementById("error");
     const overlay = document.getElementById("overlay");
@@ -97,25 +96,25 @@
     let failCount = 0;
 
     async function fetchKey() {
-      const res = await fetch("/get-key");
+      const res = await fetch("./secrets/key.txt");
       const base64Key = await res.text();
       const rawKey = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
       return crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["decrypt"]);
     }
 
     async function fetchIndexMap() {
-      const res = await fetch("/get-index-map");
+      const res = await fetch("./secrets/index-map.json");
       return await res.json();
     }
 
     async function fetchObfuscationMap() {
-      const res = await fetch("/get-obfuscation-map");
+      const res = await fetch("./secrets/obfuscation-map.json");
       return await res.json();
     }
 
     async function fetchTargetUrl() {
       try {
-        const res = await fetch("/get-target");
+        const res = await fetch("./secrets/target.txt");
         if (!res.ok) throw new Error("Failed to fetch target URL");
         return await res.text();
       } catch (err) {
@@ -126,7 +125,7 @@
 
     async function decryptImage(encFilename) {
       try {
-        const encPath = `/encrypted/${encFilename}`;
+        const encPath = `./encrypted/${encFilename}`;
         const res = await fetch(encPath);
         if (!res.ok) throw new Error(`Fetch failed: ${encPath}`);
 
