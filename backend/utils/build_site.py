@@ -4,7 +4,7 @@ import uuid
 import base64
 import shutil
 from .encrypt import encrypt_images
-from path_config import TEMPLATE_SITE_PATH, SECRETS_SERVING_PATH
+from utils.path_config import TEMPLATE_SITE_PATH, SECRETS_SERVING_PATH
 
 def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, output_dir):
     if not os.path.exists(TEMPLATE_SITE_PATH):
