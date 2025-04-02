@@ -1,247 +1,186 @@
+
 import React, { useState } from 'react';
-import { BACKEND_URL } from '../../path_config';
+import axios from 'axios';
 
-function ImageUploadGrid() {
-  const [imageCount, setImageCount] = useState(10);
+const ImageUploadGrid = () => {
+  const [numImages, setNumImages] = useState(10);
   const [images, setImages] = useState(Array(10).fill(null));
-  const [filenames, setFilenames] = useState(Array(10).fill(''));
+  const [labels, setLabels] = useState(Array(10).fill(""));
   const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
-  const [targetUrl, setTargetUrl] = useState('');
-  const [deliveryMode, setDeliveryMode] = useState('jump');
-  const [dragOverIndex, setDragOverIndex] = useState(null);
-  const [deployedUrl, setDeployedUrl] = useState('');
+  const [deliveryMode, setDeliveryMode] = useState("mirror");
+  const [targetUrl, setTargetUrl] = useState("");
+  const [title, setTitle] = useState("Secret Puzzle");
+  const [failMessage, setFailMessage] = useState("Wrong again? Try harder!");
+  const [zipBlob, setZipBlob] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleImageCountChange = (count) => {
-    const c = parseInt(count, 10);
-    setImageCount(c);
-    setImages(Array(c).fill(null));
-    setFilenames(Array(c).fill(''));
-    setIndices(Array.from({ length: c }, (_, i) => i + 1));
-  };
-
-  const handleFileChange = (index, file) => {
-    if (!file) return;
+  const handleImageChange = (i, file) => {
     const newImages = [...images];
-    const newNames = [...filenames];
-    newImages[index] = file;
-    newNames[index] = file.name.replace(/\.[^/.]+$/, '');
+    newImages[i] = file;
     setImages(newImages);
-    setFilenames(newNames);
+    const newLabels = [...labels];
+    newLabels[i] = file.name.split(".")[0];
+    setLabels(newLabels);
   };
 
-  const handleRename = (index, value) => {
-    const newNames = [...filenames];
-    newNames[index] = value;
-    setFilenames(newNames);
-  };
-
-  const handleIndexChange = (index, value) => {
-    const num = parseInt(value, 10);
-    const newIndices = [...indices];
-    newIndices[index] = isNaN(num) ? '' : num;
-    setIndices(newIndices);
-  };
-
-  const getConflictingIndices = () => {
-    const counts = {};
-    indices.forEach(val => {
-      if (val) counts[val] = (counts[val] || 0) + 1;
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const dropped = Array.from(e.dataTransfer.files).slice(0, numImages);
+    const newImages = [...images];
+    const newLabels = [...labels];
+    dropped.forEach((file, i) => {
+      newImages[i] = file;
+      newLabels[i] = file.name.split(".")[0];
     });
-    const conflicts = new Set();
-    indices.forEach((val, idx) => {
-      if (val && counts[val] > 1) {
-        conflicts.add(idx);
-      }
-    });
-    return conflicts;
+    setImages(newImages);
+    setLabels(newLabels);
   };
 
-  const allFilled = images.every(img => img !== null);
-  const allIndexed = indices.every(val => val >= 1 && val <= imageCount);
-  const noDuplicates = getConflictingIndices().size === 0;
-  const formValid = allFilled && allIndexed && noDuplicates && targetUrl;
+  const handleDragOver = (e) => e.preventDefault();
 
-  const handleSubmit = async () => {
+  const handleNumChange = (e) => {
+    const count = parseInt(e.target.value);
+    setNumImages(count);
+    setImages(Array(count).fill(null));
+    setLabels(Array(count).fill(""));
+    setIndices(Array.from({ length: count }, (_, i) => i + 1));
+  };
+
+  const handleBuild = async () => {
+    if (images.some(img => !img)) {
+      alert("Please upload all images before submitting.");
+      return;
+    }
+
     const formData = new FormData();
     images.forEach((file, i) => {
       formData.append(`image${i}`, file);
     });
-    filenames.forEach(name => formData.append("filenames[]", name));
+    labels.forEach(label => formData.append("filenames[]", label));
     indices.forEach(index => formData.append("indices[]", index));
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
+    formData.append("title", title);
+    formData.append("failMessage", failMessage);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/generate-site`, {
-        method: "POST",
-        body: formData,
+      setLoading(true);
+      const res = await axios.post("/generate-site", formData, {
+        responseType: "blob"
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        alert("❌ Error: " + (err.error || "Something went wrong"));
-        return;
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "puzzle_site.zip";
-      a.click();
-      window.URL.revokeObjectURL(url);
-
-      setDeployedUrl("https://www.google.com"); // temporary placeholder
+      setZipBlob(res.data);
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <label className="block font-semibold mb-2">Number of Images</label>
-        <select
-          value={imageCount}
-          onChange={(e) => handleImageCountChange(e.target.value)}
-          className="w-full rounded px-2 py-1 text-black"
-        >
-          {Array.from({ length: 46 }, (_, i) => i + 5).map((count) => (
-            <option key={count} value={count}>
-              {count}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {images.map((img, i) => {
-        const previewUrl = img ? URL.createObjectURL(img) : null;
-        const isUsed = indices.filter(idx => idx === indices[i]).length > 1;
-
-        return (
-          <div
-            key={i}
-            className={`bg-gray-800 p-4 rounded relative border-2 transition ${
-              dragOverIndex === i ? 'border-blue-400' : 'border-transparent'
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverIndex(i);
-            }}
-            onDragLeave={() => setDragOverIndex(null)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOverIndex(null);
-              const file = e.dataTransfer.files?.[0];
-              if (file && file.type.startsWith('image/')) {
-                handleFileChange(i, file);
-              }
-            }}
-          >
-            <label className="block font-semibold mb-2">Image {i + 1}</label>
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFileChange(i, e.target.files[0])}
-              className="text-white"
-            />
-
-            {previewUrl ? (
-              <div className="relative mt-2">
-                <img
-                  src={previewUrl}
-                  alt={`Preview ${i + 1}`}
-                  className="h-32 w-auto object-cover rounded border border-gray-500"
-                />
-                <span className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-bl">
-                  {indices[i]}
-                </span>
-              </div>
-            ) : (
-              <div className="mt-2 h-32 flex items-center justify-center bg-gray-700 rounded text-gray-400 text-sm border border-dashed border-gray-500">
-                Drag & Drop or Select Image
-              </div>
-            )}
-
-            {img && (
-              <>
-                <div className="mt-2">
-                  <label className="text-sm text-gray-300">Rename:</label>
-                  <input
-                    type="text"
-                    value={filenames[i]}
-                    onChange={(e) => handleRename(i, e.target.value)}
-                    className="w-full mt-1 rounded px-2 py-1 text-black"
-                  />
-                </div>
-
-                <select
-                  value={indices[i] || ''}
-                  onChange={(e) => handleIndexChange(i, e.target.value)}
-                  className="mt-2 w-full rounded px-2 py-1 text-black"
-                >
-                  <option value="">Select index</option>
-                  {Array.from({ length: imageCount }, (_, idx) => {
-                    const val = idx + 1;
-                    const disabled = indices.includes(val) && indices[i] !== val;
-                    return (
-                      <option key={val} value={val} disabled={disabled}>
-                        {val}
-                      </option>
-                    );
-                  })}
-                </select>
-              </>
-            )}
-          </div>
-        );
-      })}
-
-      <div>
-        <label className="block font-semibold mb-2">Target URL</label>
+        <label className="block text-sm mb-1">Number of Images (5–50):</label>
         <input
-          type="url"
-          value={targetUrl}
-          onChange={(e) => setTargetUrl(e.target.value)}
-          className="w-full rounded px-2 py-1 text-black"
-          placeholder="https://example.com"
+          type="number"
+          min={5}
+          max={50}
+          value={numImages}
+          onChange={handleNumChange}
+          className="w-24 px-2 py-1 rounded text-black"
         />
       </div>
 
-      <div className="mt-4">
-        <label className="block font-semibold mb-2">Delivery Mode</label>
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        className="border-2 border-dashed p-4 rounded bg-gray-800"
+      >
+        <p className="text-center mb-4">Drag & drop images here</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: numImages }, (_, i) => (
+            <div key={i} className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageChange(i, e.target.files[0])}
+              />
+              <input
+                type="text"
+                placeholder={`Label ${i + 1}`}
+                value={labels[i]}
+                onChange={(e) => {
+                  const newLabels = [...labels];
+                  newLabels[i] = e.target.value;
+                  setLabels(newLabels);
+                }}
+                className="w-full px-2 py-1 rounded text-black"
+              />
+              {images[i] && (
+                <img
+                  src={URL.createObjectURL(images[i])}
+                  alt="thumb"
+                  className="w-full h-32 object-cover rounded border"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input
+          type="text"
+          placeholder="Target URL"
+          value={targetUrl}
+          onChange={(e) => setTargetUrl(e.target.value)}
+          className="px-3 py-2 rounded text-black"
+        />
         <select
           value={deliveryMode}
           onChange={(e) => setDeliveryMode(e.target.value)}
-          className="w-full rounded px-2 py-1 text-black"
+          className="px-3 py-2 rounded text-black"
         >
-          <option value="jump">Jump (redirect)</option>
-          <option value="mirror">Mirror (embed)</option>
+          <option value="mirror">Mirror</option>
+          <option value="jump">Jump</option>
         </select>
+        <input
+          type="text"
+          placeholder="Page Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="px-3 py-2 rounded text-black"
+        />
+        <input
+          type="text"
+          placeholder="Failure Message"
+          value={failMessage}
+          onChange={(e) => setFailMessage(e.target.value)}
+          className="px-3 py-2 rounded text-black"
+        />
       </div>
 
-      {deployedUrl && (
-        <div className="mt-4 text-green-400 text-sm">
-          ✅ Site deployed at:{' '}
-          <a href={deployedUrl} target="_blank" rel="noopener noreferrer" className="underline">
-            {deployedUrl}
-          </a>
-        </div>
-      )}
+      <div className="flex gap-4 items-center">
+        <button
+          onClick={handleBuild}
+          disabled={loading}
+          className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+        >
+          {loading ? "Generating..." : "Build Site"}
+        </button>
 
-      <button
-        onClick={handleSubmit}
-        disabled={!formValid}
-        className={`px-4 py-2 rounded mt-4 text-white ${
-          formValid ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-600 cursor-not-allowed'
-        }`}
-      >
-        Build Puzzle Site
-      </button>
+        {zipBlob && (
+          <a
+            href={URL.createObjectURL(zipBlob)}
+            download="puzzle_site.zip"
+            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Download ZIP
+          </a>
+        )}
+      </div>
     </div>
   );
-}
+};
 
 export default ImageUploadGrid;
