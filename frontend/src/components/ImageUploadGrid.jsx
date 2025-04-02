@@ -82,8 +82,8 @@ function ImageUploadGrid() {
       a.click();
       window.URL.revokeObjectURL(url);
 
-      // TEMPORARY: use dummy URL for display
-      setDeployedUrl("https://deployed-site.example.com");
+      // Hardcoded dummy URL for now
+      setDeployedUrl("https://www.google.com");
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
