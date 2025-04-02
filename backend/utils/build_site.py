@@ -4,16 +4,16 @@ import uuid
 import base64
 import shutil
 from .encrypt import encrypt_images
-from utils.path_config import TEMPLATE_SITE_PATH, SECRETS_SERVING_PATH
+from utils.path_config import TEMPLATE_SITE_DIR, SECRETS_SERVING_DIR
 
 def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, output_dir):
-    if not os.path.exists(TEMPLATE_SITE_PATH):
+    if not os.path.exists(TEMPLATE_SITE_DIR):
         raise Exception("Missing template_site/ folder.")
 
     site_id = str(uuid.uuid4())[:8]
     site_path = os.path.join(output_dir, f"puzzle_{site_id}")
     os.makedirs(output_dir, exist_ok=True)
-    shutil.copytree(TEMPLATE_SITE_PATH, site_path)
+    shutil.copytree(TEMPLATE_SITE_DIR, site_path)
 
     # Map filenames
     label_map = {labels[i]: image_paths[i] for i in range(10)}
@@ -47,13 +47,13 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
         f.write(delivery_mode.strip())
 
     # Copy secrets to central serving directory
-    os.makedirs(SECRETS_SERVING_PATH, exist_ok=True)
+    os.makedirs(SECRETS_SERVING_DIR, exist_ok=True)
     for file in ["key.txt", "index-map.json", "obfuscation-map.json", "target.txt", "delivery-mode.txt"]:
         shutil.copy(
             os.path.join(secrets_dir, file),
-            os.path.join(SECRETS_SERVING_PATH, file)
+            os.path.join(SECRETS_SERVING_DIR, file)
         )
-        print(f"🔐 Copied {file} to {SECRETS_SERVING_PATH}")
+        print(f"🔐 Copied {file} to {SECRETS_SERVING_DIR}")
 
     # Create zip
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
