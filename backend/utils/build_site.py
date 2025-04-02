@@ -27,6 +27,7 @@ def build_puzzle_site(image_paths, labels, indices, target_url, delivery_mode, o
     # Encrypt and store in site folder
     encrypted_dir = os.path.join(site_path, "encrypted")
     encrypt_images(
+        image_paths=image_paths,  # ✅ Fixed: add missing argument
         key=key,
         output_dir=encrypted_dir,
         label_to_obfuscated={obfuscation_map[label]: label_map[label] for label in label_map}
