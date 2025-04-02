@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Secret Journal Access</title>
-<style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">Secret Puzzle</title>
+  <style>
     body {
       background: #111;
       color: #fff;
@@ -59,6 +58,8 @@
       justify-content: center;
       z-index: 999;
       display: none;
+      padding: 2rem;
+      text-align: center;
     }
     #footer {
       position: absolute;
@@ -77,23 +78,37 @@
   </style>
 </head>
 <body>
-<h1>
-    Click in the sequence of occurrence:<br/>
-<span style="font-size: 0.7em; color: #aaa;">refresh the page for a new puzzle</span>
-</h1>
-<div class="grid" id="image-grid"></div>
-<div id="error"></div>
-<div id="overlay">Wrong again? Someone fell asleep in history class quite a bit huh?</div>
-<div id="footer">
-<a href="https://github.com/rz74/rzwebsite" target="_blank">View source on GitHub</a>
-</div>
-<script>
+  <h1 id="header-title">
+    Click in the sequence of occurrence:<br>
+    <span style="font-size: 0.7em; color: #aaa;">refresh the page for a new puzzle</span>
+  </h1>
+
+  <div class="grid" id="image-grid"></div>
+  <div id="error"></div>
+  <div id="overlay">Wrong again? Someone fell asleep in history class quite a bit huh?</div>
+  <div id="footer">
+    <a href="https://github.com/rz74/rzwebsite" target="_blank">View source on GitHub</a>
+  </div>
+
+  <script>
     const grid = document.getElementById("image-grid");
     const errorDiv = document.getElementById("error");
     const overlay = document.getElementById("overlay");
+    const pageTitle = document.getElementById("page-title");
+    const headerTitle = document.getElementById("header-title");
 
     let userSequence = [];
     let failCount = 0;
+
+    async function fetchText(path, fallback = "") {
+      try {
+        const res = await fetch(path);
+        if (!res.ok) throw new Error("Fetch failed");
+        return await res.text();
+      } catch {
+        return fallback;
+      }
+    }
 
     async function fetchKey() {
       const res = await fetch("./secrets/key.txt");
@@ -103,29 +118,24 @@
     }
 
     async function fetchIndexMap() {
-      const res = await fetch("./secrets/index-map.json");
-      return await res.json();
+      return fetch("./secrets/index-map.json").then(res => res.json());
     }
 
     async function fetchObfuscationMap() {
-      const res = await fetch("./secrets/obfuscation-map.json");
-      return await res.json();
+      return fetch("./secrets/obfuscation-map.json").then(res => res.json());
     }
 
     async function fetchTargetUrl() {
-      try {
-        const res = await fetch("./secrets/target.txt");
-        if (!res.ok) throw new Error("Failed to fetch target URL");
-        return await res.text();
-      } catch (err) {
-        console.error("❌ Error loading target URL:", err);
-        return "/";
-      }
+      return fetchText("./secrets/target.txt", "/");
+    }
+
+    async function fetchDeliveryMode() {
+      return fetchText("./secrets/delivery-mode.txt", "mirror");
     }
 
     async function decryptImage(encFilename) {
       try {
-        const encPath = `./encrypted/${encFilename}.enc`;
+        const encPath = `./encrypted/${encFilename}`;
         const res = await fetch(encPath);
         if (!res.ok) throw new Error(`Fetch failed: ${encPath}`);
 
@@ -155,10 +165,17 @@
     }
 
     async function init() {
+      // Optional enhancements
+      pageTitle.textContent = await fetchText("./secrets/title.txt", "Secret Puzzle");
+      headerTitle.firstChild.textContent = pageTitle.textContent;
+      const failMessage = await fetchText("./secrets/fail-message.txt", "Wrong again? Try harder!");
+
       const allImages = await fetchIndexMap().then(map => Object.keys(map));
       const indexMap = await fetchIndexMap();
       const obfuscationMap = await fetchObfuscationMap();
       const targetUrl = await fetchTargetUrl();
+      const deliveryMode = await fetchDeliveryMode();
+
       const selected = allImages.sort(() => 0.5 - Math.random()).slice(0, 4);
       const correctOrder = selected.slice().sort((a, b) => indexMap[a] - indexMap[b]);
 
@@ -170,9 +187,6 @@
 
         decryptImage(encFilename).then(url => {
           img.src = url;
-          img.style.transition = "opacity 0.5s, transform 0.5s";
-          img.style.opacity = 1;
-          img.style.transform = "scale(1)";
         });
 
         img.addEventListener("click", () => {
@@ -183,13 +197,18 @@
           if (userSequence.length === 4) {
             const correct = userSequence.every((val, i) => val === correctOrder[i]);
             if (correct) {
-              window.location.href = targetUrl;
+              if (deliveryMode === "jump") {
+                window.open(targetUrl, "_blank");
+              } else {
+                window.location.href = targetUrl;
+              }
             } else {
               failCount++;
               errorDiv.textContent = "Incorrect sequence. Try again.";
               document.querySelectorAll(".grid img").forEach(i => i.classList.remove("clicked"));
               userSequence = [];
               if (failCount >= 2) {
+                overlay.textContent = failMessage;
                 overlay.style.display = "flex";
                 setTimeout(() => (overlay.style.display = "none"), 3000);
                 failCount = 0;

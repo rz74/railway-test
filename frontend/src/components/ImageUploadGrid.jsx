@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-// import { BACKEND_URL } from '../path_config';
 import { BACKEND_URL } from '../../path_config';
 
-
 function ImageUploadGrid() {
+  const [imageCount, setImageCount] = useState(10);
   const [images, setImages] = useState(Array(10).fill(null));
   const [filenames, setFilenames] = useState(Array(10).fill(''));
   const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
@@ -11,6 +10,14 @@ function ImageUploadGrid() {
   const [deliveryMode, setDeliveryMode] = useState('jump');
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [deployedUrl, setDeployedUrl] = useState('');
+
+  const handleImageCountChange = (count) => {
+    const c = parseInt(count, 10);
+    setImageCount(c);
+    setImages(Array(c).fill(null));
+    setFilenames(Array(c).fill(''));
+    setIndices(Array.from({ length: c }, (_, i) => i + 1));
+  };
 
   const handleFileChange = (index, file) => {
     if (!file) return;
@@ -50,13 +57,12 @@ function ImageUploadGrid() {
   };
 
   const allFilled = images.every(img => img !== null);
-  const allIndexed = indices.every(val => val >= 1 && val <= 10);
+  const allIndexed = indices.every(val => val >= 1 && val <= imageCount);
   const noDuplicates = getConflictingIndices().size === 0;
   const formValid = allFilled && allIndexed && noDuplicates && targetUrl;
 
   const handleSubmit = async () => {
     const formData = new FormData();
-
     images.forEach((file, i) => {
       formData.append(`image${i}`, file);
     });
@@ -65,22 +71,10 @@ function ImageUploadGrid() {
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
 
-    
-    
-
-    
-    
-
-
     try {
-      // const res = await fetch('/generate-site', {
-      //   method: "POST",
-      //   body: formData,
       const res = await fetch(`${BACKEND_URL}/generate-site`, {
         method: "POST",
         body: formData,
-
-
       });
 
       if (!res.ok) {
@@ -97,8 +91,7 @@ function ImageUploadGrid() {
       a.click();
       window.URL.revokeObjectURL(url);
 
-      // Hardcoded dummy URL for now
-      setDeployedUrl("https://www.google.com");
+      setDeployedUrl("https://www.google.com"); // temporary placeholder
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
@@ -107,8 +100,24 @@ function ImageUploadGrid() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <label className="block font-semibold mb-2">Number of Images</label>
+        <select
+          value={imageCount}
+          onChange={(e) => handleImageCountChange(e.target.value)}
+          className="w-full rounded px-2 py-1 text-black"
+        >
+          {Array.from({ length: 46 }, (_, i) => i + 5).map((count) => (
+            <option key={count} value={count}>
+              {count}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {images.map((img, i) => {
         const previewUrl = img ? URL.createObjectURL(img) : null;
+        const isUsed = indices.filter(idx => idx === indices[i]).length > 1;
 
         return (
           <div
@@ -157,33 +166,35 @@ function ImageUploadGrid() {
             )}
 
             {img && (
-              <div className="mt-2">
-                <label className="text-sm text-gray-300">Rename:</label>
-                <input
-                  type="text"
-                  value={filenames[i]}
-                  onChange={(e) => handleRename(i, e.target.value)}
-                  className="w-full mt-1 rounded px-2 py-1 text-black"
-                />
-              </div>
-            )}
+              <>
+                <div className="mt-2">
+                  <label className="text-sm text-gray-300">Rename:</label>
+                  <input
+                    type="text"
+                    value={filenames[i]}
+                    onChange={(e) => handleRename(i, e.target.value)}
+                    className="w-full mt-1 rounded px-2 py-1 text-black"
+                  />
+                </div>
 
-            <select
-              value={indices[i] || ''}
-              onChange={(e) => handleIndexChange(i, e.target.value)}
-              className="mt-2 w-full rounded px-2 py-1 text-black"
-            >
-              <option value="">Select index</option>
-              {[...Array(10)].map((_, idx) => {
-                const val = idx + 1;
-                const isUsed = indices.includes(val) && indices[i] !== val;
-                return (
-                  <option key={val} value={val} disabled={isUsed}>
-                    {val}
-                  </option>
-                );
-              })}
-            </select>
+                <select
+                  value={indices[i] || ''}
+                  onChange={(e) => handleIndexChange(i, e.target.value)}
+                  className="mt-2 w-full rounded px-2 py-1 text-black"
+                >
+                  <option value="">Select index</option>
+                  {Array.from({ length: imageCount }, (_, idx) => {
+                    const val = idx + 1;
+                    const disabled = indices.includes(val) && indices[i] !== val;
+                    return (
+                      <option key={val} value={val} disabled={disabled}>
+                        {val}
+                      </option>
+                    );
+                  })}
+                </select>
+              </>
+            )}
           </div>
         );
       })}
