@@ -3,22 +3,30 @@ from flask_cors import CORS
 import os
 import tempfile
 from utils.build_site import build_puzzle_site
-from utils.path_config import STATIC_DIR  # central path config
+from utils.path_config import STATIC_DIR
 from static_handlers import (
     serve_key,
     serve_index_map,
     serve_obfuscation_map,
     serve_target,
-    serve_mode
+    serve_mode,
 )
 
 app = Flask(__name__)
 CORS(app)
 
-# === Favicon route ===
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(STATIC_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+# === Serve frontend assets for mono-deployment ===
+@app.route('/<path:path>', methods=["GET"])
+def serve_frontend_file(path):
+    return send_from_directory(os.path.join(app.root_path, "static"), path)
+
+@app.route("/", methods=["GET"])
+def root():
+    return send_from_directory(os.path.join(app.root_path, "static"), "index.html")
 
 # === Secret file serving routes ===
 @app.route("/get-key", methods=["GET"])
@@ -52,9 +60,11 @@ def generate_site():
         indices = list(map(int, form.getlist("indices[]")))
         target_url = form.get("targetUrl")
         delivery_mode = form.get("deliveryMode")
+        title = form.get("title", "Secret Puzzle")
+        fail_message = form.get("failMessage", "Wrong again? Try harder!")
 
-        if len(filenames) != 10 or len(indices) != 10:
-            return jsonify({"error": "Expected 10 filenames and indices"}), 400
+        if not (5 <= len(filenames) <= 50) or not (5 <= len(indices) <= 50):
+            return jsonify({"error": "Expected 5 to 50 filenames and indices"}), 400
         if not target_url:
             return jsonify({"error": "Missing target URL"}), 400
         if not delivery_mode:
@@ -62,7 +72,7 @@ def generate_site():
 
         with tempfile.TemporaryDirectory() as tmpdir:
             image_paths = []
-            for i in range(10):
+            for i in range(len(filenames)):
                 f = files.get(f"image{i}")
                 if not f:
                     return jsonify({"error": f"Missing image{i}"}), 400
@@ -76,7 +86,9 @@ def generate_site():
                 indices=indices,
                 target_url=target_url,
                 delivery_mode=delivery_mode,
-                output_dir=tmpdir
+                output_dir=tmpdir,
+                title=title,
+                fail_message=fail_message
             )
 
             with open(zip_path, "rb") as f:
@@ -89,19 +101,6 @@ def generate_site():
 
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
-
-# === Serve frontend files ===
-@app.route("/assets/<path:path>")
-def serve_assets(path):
-    return send_from_directory(os.path.join(STATIC_DIR, "assets"), path)
-
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def serve_frontend(path):
-    index_path = os.path.join(STATIC_DIR, "index.html")
-    if os.path.exists(index_path):
-        return send_from_directory(STATIC_DIR, "index.html")
-    return "⚠️ Frontend not built yet.", 404
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
