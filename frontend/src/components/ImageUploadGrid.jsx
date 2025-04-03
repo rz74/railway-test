@@ -101,9 +101,17 @@ const ImageUploadGrid = () => {
                   </option>
                 ))}
               </select>
-              <div className="w-20 h-10 bg-blue-500 text-white text-xs flex justify-center items-center rounded border border-blue-300">
+              {/* <div className="w-20 h-10 bg-blue-500 text-white text-xs flex justify-center items-center rounded border border-blue-300">
+                {images[i] ? "Preview" : "Drop here"}
+              </div> */}
+              {/* <div className="w-24 h-24 bg-blue-500 text-white text-xs flex justify-center items-center rounded border-4 border-blue-700 shadow-md">
+                {images[i] ? "Preview" : "Drop here"}
+              </div> */}
+              <div className="w-28 h-28 bg-blue-600 text-white font-semibold text-sm flex justify-center items-center rounded-lg border-4 border-blue-800 shadow-lg">
                 {images[i] ? "Preview" : "Drop here"}
               </div>
+
+
             </div>
           ))}
         </div>
