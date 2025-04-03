@@ -7,7 +7,7 @@ const ImageUploadGrid = () => {
   const [indices, setIndices] = useState([]);
   const [deliveryMode, setDeliveryMode] = useState("mirror");
   const [targetUrl, setTargetUrl] = useState("");
-  const [title, setTitle] = useState("Secret Puzzle");
+  const [title, setTitle] = useState("Secret Puzzle:");
   const [failMessage, setFailMessage] = useState("Wrong again? Try harder!");
   const [zipBlob, setZipBlob] = useState(null);
   const [loading, setLoading] = useState(false);
