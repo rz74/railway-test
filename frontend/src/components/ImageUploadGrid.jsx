@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
+import axios from "axios";
 
 const ImageUploadGrid = () => {
   const [numImages, setNumImages] = useState(10);
@@ -12,34 +12,35 @@ const ImageUploadGrid = () => {
   const [zipBlob, setZipBlob] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // When number of images is updated
   const handleNumChange = (e) => {
-    const count = Math.max(5, Math.min(50, parseInt(e.target.value) || 10));
+    const count = parseInt(e.target.value);
     setNumImages(count);
     setImages(Array(count).fill(null));
     setIndices(Array(count).fill(null));
   };
 
+  // When a file is uploaded
   const handleImageChange = (i, file) => {
     const newImages = [...images];
     newImages[i] = file;
     setImages(newImages);
   };
 
-  const handleIndexChange = (i, val) => {
+  // When index dropdown is changed
+  const handleIndexChange = (i, value) => {
     const newIndices = [...indices];
-    newIndices[i] = parseInt(val) || null;
+    newIndices[i] = value === "" ? null : parseInt(value);
     setIndices(newIndices);
   };
 
-  const usedIndices = indices.filter(i => i !== null);
-
   const handleBuild = async () => {
-    if (images.some(img => !img)) {
+    if (images.some((img) => !img)) {
       alert("Please upload all images.");
       return;
     }
-    if (indices.some(idx => idx === null)) {
-      alert("Please assign all indices.");
+    if (indices.some((index) => index === null)) {
+      alert("Please assign indices to all images.");
       return;
     }
 
@@ -48,7 +49,7 @@ const ImageUploadGrid = () => {
       formData.append(`image${i}`, file);
       formData.append("filenames[]", file.name.split(".")[0]);
     });
-    indices.forEach(index => formData.append("indices[]", index));
+    indices.forEach((val) => formData.append("indices[]", val));
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
     formData.append("title", title);
@@ -56,7 +57,9 @@ const ImageUploadGrid = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post("/generate-site", formData, { responseType: "blob" });
+      const res = await axios.post("/generate-site", formData, {
+        responseType: "blob",
+      });
       setZipBlob(res.data);
     } catch (err) {
       console.error("❌ Submission error:", err);
@@ -66,10 +69,12 @@ const ImageUploadGrid = () => {
     }
   };
 
+  // Determine which indices are already used
+  const usedIndices = new Set(indices.filter((x) => x !== null));
+
   return (
     <div className="space-y-6">
-      <p className="text-gray-300 text-sm">Upload images, choose display index, and generate your puzzle site.</p>
-
+      {/* Number of images input */}
       <div>
         <label className="block text-sm mb-1">Number of Images (5–50):</label>
         <input
@@ -82,89 +87,94 @@ const ImageUploadGrid = () => {
         />
       </div>
 
-      {/* Drop area and file inputs */}
-      <div className="border-2 border-dashed border-blue-500 p-4 rounded-md bg-gray-800">
-        <p className="text-center text-sm text-blue-300 mb-4">Upload image files and assign an index</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      {/* Upload grid */}
+      <div className="border-2 border-dashed p-6 rounded bg-gray-800 text-center">
+        <p className="mb-4 text-gray-400">Upload your images</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: numImages }, (_, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex items-center gap-3">
+              {/* Upload field */}
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => handleImageChange(i, e.target.files[0])}
               />
+
+              {/* Index dropdown */}
               <select
-                value={indices[i] || ""}
+                value={indices[i] ?? ""}
                 onChange={(e) => handleIndexChange(i, e.target.value)}
-                className="px-2 py-1 text-black rounded"
+                className="px-2 py-1 rounded text-black"
               >
                 <option value="">Not selected</option>
-                {Array.from({ length: numImages }, (_, j) => j + 1).map(n => (
+                {Array.from({ length: numImages }, (_, j) => j + 1).map((num) => (
                   <option
-                    key={n}
-                    value={n}
-                    disabled={usedIndices.includes(n) && indices[i] !== n}
+                    key={num}
+                    value={num}
+                    disabled={usedIndices.has(num) && indices[i] !== num}
                   >
-                    {n}
+                    {num}
                   </option>
                 ))}
               </select>
-              <div className="w-6 h-6 bg-blue-500 rounded-sm"></div>
+
+              {/* Always-visible blue box */}
+              <div className="w-12 h-12 bg-blue-500 rounded" />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Settings */}
+      {/* Metadata inputs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="text-sm block mb-1">Page Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="px-3 py-2 rounded text-black w-full"
-          />
-        </div>
-        <div>
-          <label className="text-sm block mb-1">Failure Message</label>
-          <input
-            type="text"
-            value={failMessage}
-            onChange={(e) => setFailMessage(e.target.value)}
-            className="px-3 py-2 rounded text-black w-full"
-          />
-        </div>
-        <div>
-          <label className="text-sm block mb-1">Target URL</label>
+          <label className="block text-sm mb-1">Target URL:</label>
           <input
             type="text"
             value={targetUrl}
             onChange={(e) => setTargetUrl(e.target.value)}
-            className="px-3 py-2 rounded text-black w-full"
+            className="w-full px-3 py-2 rounded text-black"
           />
         </div>
         <div>
-          <label className="text-sm block mb-1">Redirect Mode</label>
+          <label className="block text-sm mb-1">Redirect Mode:</label>
           <select
             value={deliveryMode}
             onChange={(e) => setDeliveryMode(e.target.value)}
-            className="px-3 py-2 rounded text-black w-full"
+            className="w-full px-3 py-2 rounded text-black"
           >
             <option value="mirror">Mirror</option>
             <option value="jump">Jump</option>
           </select>
         </div>
+        <div>
+          <label className="block text-sm mb-1">Page Title:</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full px-3 py-2 rounded text-black"
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Failure Message:</label>
+          <input
+            type="text"
+            value={failMessage}
+            onChange={(e) => setFailMessage(e.target.value)}
+            className="w-full px-3 py-2 rounded text-black"
+          />
+        </div>
       </div>
 
-      {/* Generate & download */}
-      <div className="flex gap-4 items-center">
+      {/* Build/download buttons */}
+      <div className="flex gap-4 items-center mt-4">
         <button
           onClick={handleBuild}
           disabled={loading}
           className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
         >
-          {loading ? "Generating..." : "Build Puzzle Site"}
+          {loading ? "Generating..." : "Build Site"}
         </button>
         {zipBlob && (
           <a
@@ -177,9 +187,15 @@ const ImageUploadGrid = () => {
         )}
       </div>
 
-      <div className="text-sm text-purple-300 underline mt-2">
-        <a href="https://github.com/rz74/Memory-Puzzle-Web-App" target="_blank" rel="noreferrer">
-          View Source on GitHub
+      {/* GitHub link */}
+      <div className="mt-6 text-sm text-center">
+        <a
+          href="https://github.com/rz74/Memory-Puzzle-Web-App"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:underline"
+        >
+          View source on GitHub
         </a>
       </div>
     </div>
