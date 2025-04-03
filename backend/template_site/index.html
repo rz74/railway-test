@@ -135,7 +135,7 @@
 
     async function decryptImage(encFilename) {
       try {
-        const encPath = `./encrypted/${encFilename}`;
+        const encPath = `./encrypted/${encFilename}.enc`;
         const res = await fetch(encPath);
         if (!res.ok) throw new Error(`Fetch failed: ${encPath}`);
 
