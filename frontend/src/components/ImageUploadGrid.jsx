@@ -4,13 +4,14 @@ import axios from 'axios';
 const ImageUploadGrid = () => {
   const [numImages, setNumImages] = useState(10);
   const [images, setImages] = useState(Array(10).fill(null));
-  const [indices, setIndices] = useState(Array(10).fill(null));
+  const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
   const [deliveryMode, setDeliveryMode] = useState("jump");
   const [targetUrl, setTargetUrl] = useState("https://example.com");
   const [title, setTitle] = useState("Secret Puzzle");
   const [failMessage, setFailMessage] = useState("Wrong again? Try harder!");
-  const [zipBlob, setZipBlob] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [netlifyToken, setNetlifyToken] = useState("");
+  const [deployedUrl, setDeployedUrl] = useState("");
 
   const handleNumChange = (e) => {
     const count = parseInt(e.target.value);
@@ -51,13 +52,16 @@ const ImageUploadGrid = () => {
     formData.append("deliveryMode", deliveryMode);
     formData.append("title", title);
     formData.append("failMessage", failMessage);
+    formData.append("netlifyToken", netlifyToken);
 
     try {
       setLoading(true);
-      const res = await axios.post("/generate-site", formData, {
-        responseType: "blob"
-      });
-      setZipBlob(res.data);
+      const res = await axios.post("/generate-site", formData);
+      if (res.data && res.data.site_url) {
+        setDeployedUrl(res.data.site_url);
+      } else {
+        alert("Error: Deployment failed.");
+      }
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
@@ -113,8 +117,8 @@ const ImageUploadGrid = () => {
                     </option>
                   ))}
                 </select>
-                <div className="w-10 h-10 bg-blue-600 text-white font-semibold text-xs flex justify-center items-center rounded-lg border-4 border-blue-800 shadow-lg">
-                  Drop here
+                <div className="w-10 h-10 bg-blue-600 text-white text-[10px] flex justify-center items-center rounded border border-blue-300">
+                  Drop here/Preview
                 </div>
               </div>
             ))}
@@ -151,6 +155,21 @@ const ImageUploadGrid = () => {
             onChange={(e) => setFailMessage(e.target.value)}
             className="px-3 py-2 rounded text-black"
           />
+          <input
+            type="text"
+            placeholder="Netlify Access Token"
+            value={netlifyToken}
+            onChange={(e) => setNetlifyToken(e.target.value)}
+            className="px-3 py-2 rounded text-black col-span-2"
+          />
+          <a
+            href="https://app.netlify.com/user/applications#personal-access-tokens"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 underline text-sm col-span-2"
+          >
+            How to get a Netlify access token?
+          </a>
         </div>
 
         <div className="flex gap-4 items-center">
@@ -161,20 +180,28 @@ const ImageUploadGrid = () => {
           >
             {loading ? "Generating..." : "Build Puzzle Site"}
           </button>
-
-          {zipBlob && (
-            <a
-              href={URL.createObjectURL(zipBlob)}
-              download="puzzle_site.zip"
-              className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Download ZIP
-            </a>
-          )}
         </div>
 
+        {deployedUrl && (
+          <p className="mt-4 text-green-400">
+            ✅ Site deployed:{" "}
+            <a
+              href={deployedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              {deployedUrl}
+            </a>
+          </p>
+        )}
+
         <p className="mt-4 text-sm text-blue-400 underline">
-          <a href="https://github.com/rz74/Memory-Puzzle-Web-App" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://github.com/rz74/Memory-Puzzle-Web-App"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             View source on GitHub
           </a>
         </p>

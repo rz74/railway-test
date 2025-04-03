@@ -1,7 +1,9 @@
+
 from flask import Flask, request, jsonify, send_file, make_response, send_from_directory
 from flask_cors import CORS
 import os
 import tempfile
+import requests
 from utils.build_site import build_puzzle_site
 from utils.path_config import STATIC_DIR
 from static_handlers import (
@@ -98,6 +100,44 @@ def generate_site():
             response.headers["Content-Type"] = "application/zip"
             response.headers["Content-Disposition"] = "attachment; filename=puzzle_site.zip"
             return response
+
+    except Exception as e:
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+# === Netlify deployment route ===
+@app.route("/deploy-to-netlify", methods=["POST"])
+def deploy_to_netlify():
+    try:
+        zip_file = request.files.get("zip")
+        token = request.form.get("token")
+
+        if not zip_file or not token:
+            return jsonify({"error": "Missing zip file or Netlify access token"}), 400
+
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+
+        files = {
+            "file": ("site.zip", zip_file, "application/zip")
+        }
+
+        print("🚀 Deploying to Netlify...")
+        response = requests.post(
+            "https://api.netlify.com/api/v1/sites",
+            headers=headers,
+            files=files
+        )
+
+        if response.status_code >= 400:
+            print("❌ Deployment failed:", response.text)
+            return jsonify({"error": "Deployment to Netlify failed", "details": response.text}), 500
+
+        data = response.json()
+        site_url = data.get("deploy_url") or data.get("url")
+
+        print(f"✅ Site deployed: {site_url}")
+        return jsonify({"url": site_url})
 
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
