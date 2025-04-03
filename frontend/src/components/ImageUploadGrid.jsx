@@ -161,7 +161,7 @@ const ImageUploadGrid = () => {
                 <img
                   src={URL.createObjectURL(images[i])}
                   alt="thumb"
-                  className="w-12 h-12 object-cover rounded border mx-auto"
+                  className="w-4 h-4 object-cover rounded border mx-auto"
                 />
               )}
             </div>
