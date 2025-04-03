@@ -221,7 +221,7 @@ const ImageUploadGrid = () => {
               onDragStart={() => handleDragStart(i)}
               onDrop={() => handleDropThumbnail(i)}
               onDragOver={(e) => e.preventDefault()}
-              className="w-12 h-12 object-cover border rounded cursor-move"
+              className="w-4 h-4 object-cover border rounded cursor-move"
             />
           ))}
         </div>
