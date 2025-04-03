@@ -16,7 +16,7 @@ const ImageUploadGrid = () => {
     const count = parseInt(e.target.value);
     setNumImages(count);
     setImages(Array(count).fill(null));
-    setIndices(Array.from({ length: count }, (_, i) => i + 1));
+    setIndices(Array(count).fill(""));
   };
 
   const handleImageChange = (i, file) => {
@@ -27,29 +27,25 @@ const ImageUploadGrid = () => {
 
   const handleIndexChange = (i, newIndex) => {
     const newIndices = [...indices];
-    newIndices[i] = parseInt(newIndex);
+    newIndices[i] = newIndex === "" ? "" : parseInt(newIndex);
     setIndices(newIndices);
   };
 
   const usedIndices = (skipIndex = -1) =>
-    indices.filter((_, i) => i !== skipIndex);
+    indices.filter((val, i) => i !== skipIndex && val !== "");
 
   const handleBuild = async () => {
-    if (images.some(img => !img)) {
-      alert("Please upload all images.");
+    if (images.some(img => !img) || indices.some(idx => idx === "")) {
+      alert("Please upload all images and assign indices.");
       return;
     }
 
     const formData = new FormData();
     images.forEach((file, i) => {
       formData.append(`image${i}`, file);
+      formData.append("filenames[]", file.name.split(".")[0]);
+      formData.append("indices[]", indices[i]);
     });
-    images.forEach((file, i) =>
-      formData.append("filenames[]", file.name.split(".")[0])
-    );
-    indices.forEach(index =>
-      formData.append("indices[]", index)
-    );
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
     formData.append("title", title);
@@ -101,6 +97,7 @@ const ImageUploadGrid = () => {
               onChange={(e) => handleIndexChange(i, e.target.value)}
               className="text-black px-2 py-1 rounded"
             >
+              <option value="">Not selected</option>
               {Array.from({ length: numImages }, (_, idx) => {
                 const val = idx + 1;
                 const alreadyUsed = usedIndices(i).includes(val);
@@ -118,7 +115,7 @@ const ImageUploadGrid = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label>Page Title</label>
+          <label className="block text-sm font-medium">Page Title</label>
           <input
             type="text"
             value={title}
@@ -127,7 +124,7 @@ const ImageUploadGrid = () => {
           />
         </div>
         <div>
-          <label>Failure Message</label>
+          <label className="block text-sm font-medium">Failure Message</label>
           <input
             type="text"
             value={failMessage}
@@ -136,7 +133,7 @@ const ImageUploadGrid = () => {
           />
         </div>
         <div>
-          <label>Target URL</label>
+          <label className="block text-sm font-medium">Target URL</label>
           <input
             type="text"
             value={targetUrl}
@@ -145,7 +142,7 @@ const ImageUploadGrid = () => {
           />
         </div>
         <div>
-          <label>Redirect Mode</label>
+          <label className="block text-sm font-medium">Redirect Mode</label>
           <select
             value={deliveryMode}
             onChange={(e) => setDeliveryMode(e.target.value)}
