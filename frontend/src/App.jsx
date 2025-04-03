@@ -1,12 +1,14 @@
-import React from 'react';
-import ImageUploadGrid from './components/ImageUploadGrid';
+import React from "react";
+import ImageUploadGrid from "./components/ImageUploadGrid";
 
-function App() {
+const App = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
-      <ImageUploadGrid />
+      <main className="space-y-6">
+        <ImageUploadGrid />
+      </main>
     </div>
   );
-}
+};
 
 export default App;
