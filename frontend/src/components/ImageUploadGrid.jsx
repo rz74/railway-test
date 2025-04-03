@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
+import axios from "axios";
 
 const ImageUploadGrid = () => {
   const [numImages, setNumImages] = useState(10);
@@ -15,10 +15,11 @@ const ImageUploadGrid = () => {
 
   const handleNumChange = (e) => {
     const count = parseInt(e.target.value);
-    setNumImages(count);
-    setImages(Array(count).fill(null));
-    setLabels(Array(count).fill(""));
-    setIndices(Array.from({ length: count }, (_, i) => i + 1));
+    const safeCount = Math.max(5, Math.min(50, count));
+    setNumImages(safeCount);
+    setImages(Array(safeCount).fill(null));
+    setLabels(Array(safeCount).fill(""));
+    setIndices(Array.from({ length: safeCount }, (_, i) => i + 1));
   };
 
   const handleImageChange = (i, file) => {
@@ -31,29 +32,49 @@ const ImageUploadGrid = () => {
     setLabels(newLabels);
   };
 
-  const handleDrop = (e) => {
+  const handleLabelChange = (i, value) => {
+    const newLabels = [...labels];
+    newLabels[i] = value;
+    setLabels(newLabels);
+  };
+
+  const handleIndexChange = (i, value) => {
+    const newIndices = [...indices];
+    newIndices[i] = parseInt(value);
+    setIndices(newIndices);
+  };
+
+  const usedIndices = new Set(indices);
+
+  const handleDropZone = (e) => {
     e.preventDefault();
     const dropped = Array.from(e.dataTransfer.files).slice(0, numImages);
     const newImages = [...images];
     const newLabels = [...labels];
+
     dropped.forEach((file, i) => {
       newImages[i] = file;
       newLabels[i] = file.name.split(".")[0];
     });
+
     setImages(newImages);
     setLabels(newLabels);
   };
 
+  const handleDragOver = (e) => e.preventDefault();
+
   const handleBuild = async () => {
-    if (images.some(img => !img)) {
+    if (images.some((img) => !img)) {
       alert("Please upload all images.");
       return;
     }
 
     const formData = new FormData();
-    images.forEach((file, i) => formData.append(`image${i}`, file));
-    labels.forEach(label => formData.append("filenames[]", label));
-    indices.forEach(index => formData.append("indices[]", index));
+    images.forEach((file, i) => {
+      formData.append(`image${i}`, file);
+    });
+    labels.forEach((label) => formData.append("filenames[]", label));
+    indices.forEach((index) => formData.append("indices[]", index));
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
     formData.append("title", title);
@@ -62,7 +83,7 @@ const ImageUploadGrid = () => {
     try {
       setLoading(true);
       const res = await axios.post("/generate-site", formData, {
-        responseType: "blob"
+        responseType: "blob",
       });
       setZipBlob(res.data);
     } catch (err) {
@@ -74,123 +95,100 @@ const ImageUploadGrid = () => {
   };
 
   return (
-    <div className="space-y-6 px-4 max-w-screen-md mx-auto">
-      <h1 className="text-2xl font-bold">🧠 Memory Puzzle Uploader</h1>
-      <p className="text-gray-400 mb-2">Upload images, label and index them, and deploy your personalized puzzle site.</p>
+    <div className="space-y-6 text-white">
+      <h1 className="text-3xl font-bold">🧠 Memory Puzzle Uploader</h1>
+      <p className="text-sm text-gray-400">
+        Upload {numImages} images, label and index them, and deploy your personalized puzzle site.
+      </p>
 
-      <div>
-        <label className="block font-semibold mb-1">Number of Images (5–50):</label>
-        <input
-          type="number"
-          min={5}
-          max={50}
-          value={numImages}
-          onChange={handleNumChange}
-          className="w-24 px-2 py-1 rounded text-black"
-        />
-      </div>
+      <label className="block text-sm mb-1 mt-2">Number of Images (5–50):</label>
+      <input
+        type="number"
+        min={5}
+        max={50}
+        value={numImages}
+        onChange={handleNumChange}
+        className="w-24 px-2 py-1 rounded text-black"
+      />
 
       <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        className="border-2 border-dashed p-6 rounded bg-gray-800"
+        onDrop={handleDropZone}
+        onDragOver={handleDragOver}
+        className="border-2 border-dashed border-gray-400 p-4 rounded bg-gray-800 text-center mt-2"
       >
-        <p className="text-center mb-4 text-gray-300">Drag & drop your images here</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {Array.from({ length: numImages }, (_, i) => {
-            const usedIndices = new Set(indices.filter((_, idx) => idx !== i));
-            return (
-              <div key={i} className="space-y-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageChange(i, e.target.files[0])}
+        <p className="mb-4 text-gray-400">Drag & drop your images here</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: numImages }, (_, i) => (
+            <div key={i} className="bg-gray-700 p-2 rounded space-y-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageChange(i, e.target.files[0])}
+              />
+              <input
+                type="text"
+                placeholder={`Label ${i + 1}`}
+                value={labels[i] || ""}
+                onChange={(e) => handleLabelChange(i, e.target.value)}
+                className="w-full px-2 py-1 text-sm rounded text-black"
+              />
+              <select
+                value={indices[i]}
+                onChange={(e) => handleIndexChange(i, e.target.value)}
+                className="w-full px-2 py-1 text-sm rounded text-black"
+              >
+                {Array.from({ length: numImages }, (_, j) => (
+                  <option
+                    key={j + 1}
+                    value={j + 1}
+                    disabled={indices.includes(j + 1) && indices[i] !== j + 1}
+                  >
+                    {j + 1}
+                  </option>
+                ))}
+              </select>
+              {images[i] && (
+                <img
+                  src={URL.createObjectURL(images[i])}
+                  alt="thumbnail"
+                  className="w-6 h-6 object-cover rounded border mx-auto"
                 />
-                <input
-                  type="text"
-                  placeholder={`Label ${i + 1}`}
-                  value={labels[i]}
-                  onChange={(e) => {
-                    const newLabels = [...labels];
-                    newLabels[i] = e.target.value;
-                    setLabels(newLabels);
-                  }}
-                  className="w-full px-2 py-1 rounded text-black"
-                />
-                <select
-                  value={indices[i]}
-                  onChange={(e) => {
-                    const newIndices = [...indices];
-                    newIndices[i] = parseInt(e.target.value);
-                    setIndices(newIndices);
-                  }}
-                  className="w-full px-2 py-1 rounded text-black"
-                >
-                  {Array.from({ length: numImages }, (_, idx) => idx + 1).map(val => (
-                    <option
-                      key={val}
-                      value={val}
-                      disabled={usedIndices.has(val)}
-                    >
-                      {val}
-                    </option>
-                  ))}
-                </select>
-                {images[i] && (
-                  <img
-                    src={URL.createObjectURL(images[i])}
-                    alt="thumb"
-                    className="w-12 h-12 object-cover rounded border mx-auto"
-                  />
-                )}
-              </div>
-            );
-          })}
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      <div>
-        <label className="block font-semibold mb-1">Page Title</label>
+      <div className="space-y-2">
+        <label className="block">Page Title</label>
         <input
           type="text"
-          placeholder="Page Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full px-3 py-2 rounded text-black"
         />
-      </div>
-
-      <div>
-        <label className="block font-semibold mb-1">Failure Message</label>
+        <label className="block">Failure Message</label>
         <input
           type="text"
-          placeholder="Failure Message"
           value={failMessage}
           onChange={(e) => setFailMessage(e.target.value)}
           className="w-full px-3 py-2 rounded text-black"
         />
-      </div>
-
-      <div>
-        <label className="block font-semibold mb-1">Target URL</label>
+        <label className="block">Target URL</label>
         <input
           type="text"
-          placeholder="Target URL"
           value={targetUrl}
           onChange={(e) => setTargetUrl(e.target.value)}
           className="w-full px-3 py-2 rounded text-black"
         />
-      </div>
-
-      <div>
-        <label className="block font-semibold mb-1">Redirect Mode</label>
+        <label className="block">Redirect Mode</label>
         <select
           value={deliveryMode}
           onChange={(e) => setDeliveryMode(e.target.value)}
           className="w-full px-3 py-2 rounded text-black"
         >
-          <option value="mirror">Mirror (embed)</option>
-          <option value="jump">Jump (redirect)</option>
+          <option value="mirror">Mirror (same tab)</option>
+          <option value="jump">Jump (new tab)</option>
         </select>
       </div>
 
@@ -202,7 +200,6 @@ const ImageUploadGrid = () => {
         >
           {loading ? "Generating..." : "Build Puzzle Site"}
         </button>
-
         {zipBlob && (
           <a
             href={URL.createObjectURL(zipBlob)}
@@ -214,12 +211,12 @@ const ImageUploadGrid = () => {
         )}
       </div>
 
-      <div className="mt-6 text-sm text-center text-gray-400">
+      <div className="text-right pt-4">
         <a
-          href="https://github.com/rz74/Memory-Puzzle-Web-App"
+          href="https://github.com/rz74/"
           target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
+          className="text-sm underline text-gray-400 hover:text-white"
+          rel="noreferrer"
         >
           View source on GitHub
         </a>
