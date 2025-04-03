@@ -54,6 +54,10 @@ def build_puzzle_site(
         label_to_obfuscated={obfuscation_map[label]: label_map[label] for label in label_map}
     )
 
+    # Sanitize target URL
+    if not target_url.startswith("http://") and not target_url.startswith("https://"):
+        target_url = "https://" + target_url
+
     # 📁 Save secrets to site/secrets/
     secrets_dir = os.path.join(site_path, "secrets")
     os.makedirs(secrets_dir, exist_ok=True)
