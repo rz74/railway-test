@@ -1,54 +1,72 @@
-
 import React, { useState } from 'react';
 import axios from 'axios';
 
 const ImageUploadGrid = () => {
   const [numImages, setNumImages] = useState(10);
-  const [images, setImages] = useState(Array(10).fill(null));
-  const [labels, setLabels] = useState(Array(10).fill(""));
-  const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
+  const [images, setImages] = useState([]);
+  const [labels, setLabels] = useState([]);
   const [deliveryMode, setDeliveryMode] = useState("mirror");
   const [targetUrl, setTargetUrl] = useState("");
   const [title, setTitle] = useState("Secret Puzzle");
   const [failMessage, setFailMessage] = useState("Wrong again? Try harder!");
   const [zipBlob, setZipBlob] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const handleImageChange = (i, file) => {
-    const newImages = [...images];
-    newImages[i] = file;
-    setImages(newImages);
-    const newLabels = [...labels];
-    newLabels[i] = file.name.split(".")[0];
-    setLabels(newLabels);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const dropped = Array.from(e.dataTransfer.files).slice(0, numImages);
-    const newImages = [...images];
-    const newLabels = [...labels];
-    dropped.forEach((file, i) => {
-      newImages[i] = file;
-      newLabels[i] = file.name.split(".")[0];
-    });
-    setImages(newImages);
-    setLabels(newLabels);
-  };
-
-  const handleDragOver = (e) => e.preventDefault();
+  const [draggedIndex, setDraggedIndex] = useState(null);
 
   const handleNumChange = (e) => {
     const count = parseInt(e.target.value);
     setNumImages(count);
     setImages(Array(count).fill(null));
     setLabels(Array(count).fill(""));
-    setIndices(Array.from({ length: count }, (_, i) => i + 1));
+  };
+
+  const handleImageChange = (i, file) => {
+    const newImages = [...images];
+    newImages[i] = file;
+    setImages(newImages);
+
+    const newLabels = [...labels];
+    newLabels[i] = file.name.split(".")[0];
+    setLabels(newLabels);
+  };
+
+  const handleDropZone = (e) => {
+    e.preventDefault();
+    const dropped = Array.from(e.dataTransfer.files).slice(0, numImages);
+    const newImages = [...images];
+    const newLabels = [...labels];
+
+    dropped.forEach((file, i) => {
+      newImages[i] = file;
+      newLabels[i] = file.name.split(".")[0];
+    });
+
+    setImages(newImages);
+    setLabels(newLabels);
+  };
+
+  const handleDragOver = (e) => e.preventDefault();
+
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDropImage = (index) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    const newImages = [...images];
+    const newLabels = [...labels];
+
+    [newImages[draggedIndex], newImages[index]] = [newImages[index], newImages[draggedIndex]];
+    [newLabels[draggedIndex], newLabels[index]] = [newLabels[index], newLabels[draggedIndex]];
+
+    setImages(newImages);
+    setLabels(newLabels);
+    setDraggedIndex(null);
   };
 
   const handleBuild = async () => {
     if (images.some(img => !img)) {
-      alert("Please upload all images before submitting.");
+      alert("Please upload all images.");
       return;
     }
 
@@ -57,7 +75,7 @@ const ImageUploadGrid = () => {
       formData.append(`image${i}`, file);
     });
     labels.forEach(label => formData.append("filenames[]", label));
-    indices.forEach(index => formData.append("indices[]", index));
+    images.forEach((_, i) => formData.append("indices[]", i + 1));
     formData.append("targetUrl", targetUrl);
     formData.append("deliveryMode", deliveryMode);
     formData.append("title", title);
@@ -92,14 +110,21 @@ const ImageUploadGrid = () => {
       </div>
 
       <div
-        onDrop={handleDrop}
+        onDrop={handleDropZone}
         onDragOver={handleDragOver}
-        className="border-2 border-dashed p-4 rounded bg-gray-800"
+        className="border-2 border-dashed p-8 rounded bg-gray-800 text-center"
       >
-        <p className="text-center mb-4">Drag & drop images here</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <p className="mb-4 text-gray-400">Drag & drop your images here</p>
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           {Array.from({ length: numImages }, (_, i) => (
-            <div key={i} className="space-y-2">
+            <div
+              key={i}
+              className="space-y-2"
+              draggable={!!images[i]}
+              onDragStart={() => handleDragStart(i)}
+              onDrop={() => handleDropImage(i)}
+              onDragOver={(e) => e.preventDefault()}
+            >
               <input
                 type="file"
                 accept="image/*"
@@ -108,7 +133,7 @@ const ImageUploadGrid = () => {
               <input
                 type="text"
                 placeholder={`Label ${i + 1}`}
-                value={labels[i]}
+                value={labels[i] || ""}
                 onChange={(e) => {
                   const newLabels = [...labels];
                   newLabels[i] = e.target.value;
@@ -120,7 +145,7 @@ const ImageUploadGrid = () => {
                 <img
                   src={URL.createObjectURL(images[i])}
                   alt="thumb"
-                  className="w-full h-32 object-cover rounded border"
+                  className="w-full h-20 object-cover rounded border"
                 />
               )}
             </div>
