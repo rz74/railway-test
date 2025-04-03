@@ -68,8 +68,7 @@ const ImageUploadGrid = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">🧠 Memory Puzzle Uploader</h1>
-      <p className="text-gray-300 text-sm">Upload {numImages} images, choose display index, and generate your puzzle.</p>
+      <p className="text-gray-300 text-sm">Upload images, choose display index, and generate your puzzle site.</p>
 
       <div>
         <label className="block text-sm mb-1">Number of Images (5–50):</label>
@@ -83,35 +82,40 @@ const ImageUploadGrid = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {Array.from({ length: numImages }, (_, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImageChange(i, e.target.files[0])}
-            />
-            <select
-              value={indices[i] || ""}
-              onChange={(e) => handleIndexChange(i, e.target.value)}
-              className="px-2 py-1 text-black rounded"
-            >
-              <option value="">Not selected</option>
-              {Array.from({ length: numImages }, (_, j) => j + 1).map(n => (
-                <option
-                  key={n}
-                  value={n}
-                  disabled={usedIndices.includes(n) && indices[i] !== n}
-                >
-                  {n}
-                </option>
-              ))}
-            </select>
-            <div className="w-10 h-10 bg-blue-500 rounded-md"></div>
-          </div>
-        ))}
+      {/* Drop area and file inputs */}
+      <div className="border-2 border-dashed border-blue-500 p-4 rounded-md bg-gray-800">
+        <p className="text-center text-sm text-blue-300 mb-4">Upload image files and assign an index</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {Array.from({ length: numImages }, (_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageChange(i, e.target.files[0])}
+              />
+              <select
+                value={indices[i] || ""}
+                onChange={(e) => handleIndexChange(i, e.target.value)}
+                className="px-2 py-1 text-black rounded"
+              >
+                <option value="">Not selected</option>
+                {Array.from({ length: numImages }, (_, j) => j + 1).map(n => (
+                  <option
+                    key={n}
+                    value={n}
+                    disabled={usedIndices.includes(n) && indices[i] !== n}
+                  >
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <div className="w-6 h-6 bg-blue-500 rounded-sm"></div>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="text-sm block mb-1">Page Title</label>
@@ -153,6 +157,7 @@ const ImageUploadGrid = () => {
         </div>
       </div>
 
+      {/* Generate & download */}
       <div className="flex gap-4 items-center">
         <button
           onClick={handleBuild}
