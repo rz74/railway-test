@@ -4,7 +4,7 @@ import axios from 'axios';
 const ImageUploadGrid = () => {
   const [numImages, setNumImages] = useState(10);
   const [images, setImages] = useState(Array(10).fill(null));
-  const [indices, setIndices] = useState(Array(10).fill(null));
+  const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
   const [deliveryMode, setDeliveryMode] = useState("jump");
   const [targetUrl, setTargetUrl] = useState("https://example.com");
   const [title, setTitle] = useState("Secret Puzzle");
@@ -54,20 +54,20 @@ const ImageUploadGrid = () => {
     formData.append("title", title);
     formData.append("failMessage", failMessage);
 
+    if (netlifyToken.trim()) {
+      formData.append("token", netlifyToken);
+    }
+
     try {
       setLoading(true);
       const res = await axios.post("/generate-site", formData, {
-        responseType: "blob"
+        responseType: netlifyToken.trim() ? "json" : "blob",
       });
-      setZipBlob(res.data);
 
       if (netlifyToken.trim()) {
-        const deployForm = new FormData();
-        deployForm.append("zip", new Blob([res.data], { type: 'application/zip' }), "site.zip");
-        deployForm.append("token", netlifyToken);
-
-        const deployRes = await axios.post("/deploy-to-netlify", deployForm);
-        setNetlifyUrl(deployRes.data.url);
+        setNetlifyUrl(res.data.url);
+      } else {
+        setZipBlob(res.data);
       }
     } catch (err) {
       console.error("❌ Submission error:", err);
@@ -131,7 +131,6 @@ const ImageUploadGrid = () => {
             ))}
           </div>
         </div>
-
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
