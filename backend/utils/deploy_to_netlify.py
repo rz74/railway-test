@@ -57,7 +57,7 @@ def upload_zip_to_netlify(zip_path, netlify_token):
 
     # Step 4: Poll until deploy is ready
     print(f"🔁 Polling deploy {deploy_id} until it's ready...")
-    for _ in range(60):
+    for _ in range(120):
         d_status = requests.get(deploy_status_url, headers=headers)
         if d_status.status_code == 200:
             d_state = d_status.json().get("state")
