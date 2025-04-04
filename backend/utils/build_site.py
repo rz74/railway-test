@@ -88,11 +88,11 @@ def build_puzzle_site(
     os.makedirs(SECRETS_DIR, exist_ok=True)
     for filename in secrets:
         shutil.copy(os.path.join(secrets_dir, filename), os.path.join(SECRETS_DIR, filename))
-        print(f"🔐 Copied {filename} to {SECRETS_DIR}")
+        print(f"Copied {filename} to {SECRETS_DIR}")
 
     # 🎁 Create properly flattened ZIP file
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
     zip_site_contents(site_path, zip_path)
-    print(f"📦 Puzzle site generated at {site_path}")
+    print(f"Puzzle site generated at {site_path}")
 
     return zip_path, site_path

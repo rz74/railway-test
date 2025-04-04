@@ -1,3 +1,4 @@
+import shutil
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
@@ -86,6 +87,11 @@ def generate_site():
                 print("🚀 Deploying to Netlify...")
                 site_url = upload_zip_to_netlify(zip_path, netlify_token)
                 print(f"✅ Site deployed: {site_url}")
+                # Add this after the call to build_puzzle_site
+                persistent_path = os.path.join("/mnt/data", os.path.basename(zip_path))
+                shutil.copy(zip_path, persistent_path)
+                print(f"🧪 Copied ZIP for review: {persistent_path}")
+
                 return jsonify({"url": site_url})
             else:
                 with open(zip_path, "rb") as f:
