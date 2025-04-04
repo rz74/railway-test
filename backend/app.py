@@ -1,10 +1,9 @@
-
-from flask import Flask, request, jsonify, send_file, make_response, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import tempfile
-import requests
 from utils.build_site import build_puzzle_site
+from utils.deploy_to_netlify import upload_zip_to_netlify
 from utils.path_config import STATIC_DIR
 from static_handlers import (
     serve_key,
@@ -21,7 +20,6 @@ CORS(app)
 def favicon():
     return send_from_directory(STATIC_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-# === Serve frontend assets for mono-deployment ===
 @app.route('/<path:path>', methods=["GET"])
 def serve_frontend_file(path):
     return send_from_directory(os.path.join(app.root_path, "static"), path)
@@ -30,7 +28,6 @@ def serve_frontend_file(path):
 def root():
     return send_from_directory(os.path.join(app.root_path, "static"), "index.html")
 
-# === Secret file serving routes ===
 @app.route("/get-key", methods=["GET"])
 def serve_key_route():
     return serve_key()
@@ -51,7 +48,6 @@ def serve_target_route():
 def serve_mode_route():
     return serve_mode()
 
-# === Site generation route ===
 @app.route("/generate-site", methods=["POST"])
 def generate_site():
     try:
@@ -64,6 +60,7 @@ def generate_site():
         delivery_mode = form.get("deliveryMode")
         title = form.get("title", "Secret Puzzle")
         fail_message = form.get("failMessage", "Wrong again? Try harder!")
+        netlify_token = form.get("token")
 
         if not (5 <= len(filenames) <= 50) or not (5 <= len(indices) <= 50):
             return jsonify({"error": "Expected 5 to 50 filenames and indices"}), 400
@@ -93,51 +90,19 @@ def generate_site():
                 fail_message=fail_message
             )
 
-            with open(zip_path, "rb") as f:
-                data = f.read()
-
-            response = make_response(data)
-            response.headers["Content-Type"] = "application/zip"
-            response.headers["Content-Disposition"] = "attachment; filename=puzzle_site.zip"
-            return response
-
-    except Exception as e:
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
-
-# === Netlify deployment route ===
-@app.route("/deploy-to-netlify", methods=["POST"])
-def deploy_to_netlify():
-    try:
-        zip_file = request.files.get("zip")
-        token = request.form.get("token")
-
-        if not zip_file or not token:
-            return jsonify({"error": "Missing zip file or Netlify access token"}), 400
-
-        headers = {
-            "Authorization": f"Bearer {token}"
-        }
-
-        files = {
-            "file": ("site.zip", zip_file, "application/zip")
-        }
-
-        print("🚀 Deploying to Netlify...")
-        response = requests.post(
-            "https://api.netlify.com/api/v1/sites",
-            headers=headers,
-            files=files
-        )
-
-        if response.status_code >= 400:
-            print("❌ Deployment failed:", response.text)
-            return jsonify({"error": "Deployment to Netlify failed", "details": response.text}), 500
-
-        data = response.json()
-        site_url = data.get("deploy_url") or data.get("url")
-
-        print(f"✅ Site deployed: {site_url}")
-        return jsonify({"url": site_url})
+            if netlify_token:
+                # Deploy to Netlify
+                print("🚀 Deploying to Netlify...")
+                site_url = upload_zip_to_netlify(zip_path, netlify_token)
+                print(f"✅ Site deployed: {site_url}")
+                return jsonify({"url": site_url})
+            else:
+                # Return zip
+                with open(zip_path, "rb") as f:
+                    data = f.read()
+                response = Flask.response_class(data, mimetype="application/zip")
+                response.headers["Content-Disposition"] = "attachment; filename=puzzle_site.zip"
+                return response
 
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
