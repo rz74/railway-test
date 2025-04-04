@@ -9,13 +9,21 @@ from utils.path_config import TEMPLATE_SITE_DIR, SECRETS_DIR
 
 PATCHED_INDEX_PATH = os.path.join(os.path.dirname(__file__), "../template_site/index.html")
 
+# def zip_site_contents(folder_path, zip_path):
+#     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+#         for root, dirs, files in os.walk(folder_path):
+#             for file in files:
+#                 full_path = os.path.join(root, file)
+#                 relative_path = os.path.relpath(full_path, folder_path)
+#                 zipf.write(full_path, arcname=relative_path)
 def zip_site_contents(folder_path, zip_path):
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(folder_path):
+        for root, _, files in os.walk(folder_path):
             for file in files:
                 full_path = os.path.join(root, file)
-                relative_path = os.path.relpath(full_path, folder_path)
-                zipf.write(full_path, arcname=relative_path)
+                rel_path = os.path.relpath(full_path, folder_path)  # ✅ strips root folder
+                zipf.write(full_path, arcname=rel_path)
+
 
 def build_puzzle_site(
     image_paths,
@@ -93,6 +101,7 @@ def build_puzzle_site(
     # 🎁 Create properly flattened ZIP file
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
     zip_site_contents(site_path, zip_path)
+    
     print(f"Puzzle site generated at {site_path}")
 
     return zip_path, site_path
