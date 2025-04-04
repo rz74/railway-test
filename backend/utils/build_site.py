@@ -21,8 +21,10 @@ def zip_site_contents(folder_path, zip_path):
         for root, _, files in os.walk(folder_path):
             for file in files:
                 full_path = os.path.join(root, file)
-                rel_path = os.path.relpath(full_path, folder_path)  # ✅ strips root folder
+                # 👇 removes the folder_path prefix
+                rel_path = os.path.relpath(full_path, folder_path)
                 zipf.write(full_path, arcname=rel_path)
+
 
 
 def build_puzzle_site(
