@@ -22,9 +22,9 @@ def upload_zip_to_netlify(zip_path, netlify_token):
 
     print(f"✅ Site created: {site_url} (id: {site_id})")
 
-    # Step 2: Optional wait + poll
+    # Step 2: Optional wait + poll for provisioning
     print("⏳ Waiting for site to finish provisioning...")
-    time.sleep(2)  # let Netlify stabilize
+    time.sleep(2)
     for _ in range(100):
         status_resp = requests.get(f"https://api.netlify.com/api/v1/sites/{site_id}", headers=headers)
         if status_resp.status_code == 200:
@@ -38,26 +38,43 @@ def upload_zip_to_netlify(zip_path, netlify_token):
         print("⚠️ Timed out waiting — deploying anyway...")
 
     # Step 3: Upload ZIP
-    try:
-        print("📦 Deploying ZIP...")
-        with open(zip_path, "rb") as f:
-            zip_bytes = f.read()
+    print("📦 Deploying ZIP...")
+    with open(zip_path, "rb") as f:
+        zip_bytes = f.read()
 
-        files = {
-            "file": ("site.zip", zip_bytes, "application/zip"),
-        }
+    files = {
+        "file": ("site.zip", zip_bytes, "application/zip"),
+    }
 
-        deploy_url = f"https://api.netlify.com/api/v1/sites/{site_id}/deploys"
-        deploy_resp = requests.post(deploy_url, headers=headers, files=files)
+    deploy_url = f"https://api.netlify.com/api/v1/sites/{site_id}/deploys"
+    deploy_resp = requests.post(deploy_url, headers=headers, files=files)
+    if deploy_resp.status_code not in (200, 201):
+        raise Exception(f"❌ Failed to deploy ZIP: {deploy_resp.status_code} - {deploy_resp.text}")
 
-        print(f"📡 Deploy response code: {deploy_resp.status_code}")
-        print(f"📡 Deploy response body: {deploy_resp.text[:500]}")  # limit long output
+    deploy_data = deploy_resp.json()
+    deploy_id = deploy_data["id"]
+    deploy_status_url = f"https://api.netlify.com/api/v1/deploys/{deploy_id}"
 
-        if deploy_resp.status_code not in (200, 201):
-            raise Exception(f"❌ Failed to deploy ZIP: {deploy_resp.status_code} - {deploy_resp.text}")
+    # Step 4: Poll until deploy is ready
+    print(f"🔁 Polling deploy {deploy_id} until it's ready...")
+    for _ in range(60):
+        d_status = requests.get(deploy_status_url, headers=headers)
+        if d_status.status_code == 200:
+            d_state = d_status.json().get("state")
+            print(f"🔍 Deploy state: {d_state}")
+            if d_state == "ready":
+                print("✅ Deploy is ready.")
+                break
+        time.sleep(1)
+    else:
+        raise Exception("❌ Deploy never became ready.")
 
-        print("✅ Deployment successful!")
-        return site_url
-    except Exception as e:
-        print(f"❌ Deploy error: {e}")
-        raise
+    # Step 5: Lock the deploy
+    print(f"🔒 Locking deploy {deploy_id}...")
+    lock_url = f"https://api.netlify.com/api/v1/deploys/{deploy_id}/lock"
+    lock_resp = requests.post(lock_url, headers=headers)
+    if lock_resp.status_code not in (200, 204):
+        raise Exception(f"❌ Failed to lock deploy: {lock_resp.status_code} - {lock_resp.text}")
+    print("✅ Deploy locked successfully!")
+
+    return site_url
