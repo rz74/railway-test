@@ -10,8 +10,8 @@ const ImageUploadGrid = () => {
   const [title, setTitle] = useState("Secret Puzzle");
   const [failMessage, setFailMessage] = useState("Wrong again? Try harder!");
   const [netlifyToken, setNetlifyToken] = useState("");
-  const [zipBlob, setZipBlob] = useState(null);
   const [netlifyUrl, setNetlifyUrl] = useState("");
+  const [zipId, setZipId] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleNumChange = (e) => {
@@ -60,15 +60,10 @@ const ImageUploadGrid = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post("/generate-site", formData, {
-        responseType: netlifyToken.trim() ? "json" : "blob",
-      });
-
-      if (netlifyToken.trim()) {
-        setNetlifyUrl(res.data.url);
-      } else {
-        setZipBlob(res.data);
-      }
+      const res = await axios.post("/generate-site", formData);
+      const { zip_id, url } = res.data;
+      setZipId(zip_id || "");
+      setNetlifyUrl(url || "");
     } catch (err) {
       console.error("❌ Submission error:", err);
       alert("❌ Network error: Could not contact server.");
@@ -195,11 +190,11 @@ const ImageUploadGrid = () => {
             {loading ? "Generating..." : "Build Puzzle Site"}
           </button>
 
-          {zipBlob && (
+          {zipId && (
             <a
-              href={URL.createObjectURL(zipBlob)}
-              download="puzzle_site.zip"
+              href={`/download-site/${zipId}`}
               className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+              download
             >
               Download ZIP
             </a>
