@@ -4,15 +4,15 @@ import axios from 'axios';
 const ImageUploadGrid = () => {
   const [numImages, setNumImages] = useState(10);
   const [images, setImages] = useState(Array(10).fill(null));
-  const [indices, setIndices] = useState(Array.from({ length: 10 }, (_, i) => i + 1));
+  const [indices, setIndices] = useState(Array(10).fill(null));
   const [deliveryMode, setDeliveryMode] = useState("jump");
   const [targetUrl, setTargetUrl] = useState("https://example.com");
   const [title, setTitle] = useState("Secret Puzzle");
   const [failMessage, setFailMessage] = useState("Wrong again? Try harder!");
-  const [zipBlob, setZipBlob] = useState(null);
-  const [netlifyUrl, setNetlifyUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [netlifyToken, setNetlifyToken] = useState("");
+  const [zipBlob, setZipBlob] = useState(null);
+  const [netlifyUrl, setNetlifyUrl] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleNumChange = (e) => {
     const count = parseInt(e.target.value);
@@ -42,10 +42,6 @@ const ImageUploadGrid = () => {
       alert("All indices must be uniquely selected.");
       return;
     }
-    if (!netlifyToken) {
-      alert("Please enter a Netlify access token.");
-      return;
-    }
 
     const formData = new FormData();
     images.forEach((file, i) => {
@@ -57,19 +53,25 @@ const ImageUploadGrid = () => {
     formData.append("deliveryMode", deliveryMode);
     formData.append("title", title);
     formData.append("failMessage", failMessage);
-    formData.append("netlifyToken", netlifyToken);
 
     try {
       setLoading(true);
-      const res = await axios.post("/deploy-to-netlify", formData);
-      if (res.data.url) {
-        setNetlifyUrl(res.data.url);
-      } else {
-        throw new Error("No URL returned from backend");
+      const res = await axios.post("/generate-site", formData, {
+        responseType: "blob"
+      });
+      setZipBlob(res.data);
+
+      if (netlifyToken.trim()) {
+        const deployForm = new FormData();
+        deployForm.append("zip", new Blob([res.data], { type: 'application/zip' }), "site.zip");
+        deployForm.append("token", netlifyToken);
+
+        const deployRes = await axios.post("/deploy-to-netlify", deployForm);
+        setNetlifyUrl(deployRes.data.url);
       }
     } catch (err) {
       console.error("❌ Submission error:", err);
-      alert("Error: Deployment failed.");
+      alert("❌ Network error: Could not contact server.");
     } finally {
       setLoading(false);
     }
@@ -77,7 +79,7 @@ const ImageUploadGrid = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
-      <h1 className="text-4xl font-bold mb-2">🧐 Memory Puzzle Uploader</h1>
+      <h1 className="text-4xl font-bold mb-2">🧠 Memory Puzzle Uploader</h1>
       <p className="text-sm text-gray-300 mb-4">
         Upload images, choose display index, and generate your puzzle.
       </p>
@@ -123,7 +125,7 @@ const ImageUploadGrid = () => {
                   ))}
                 </select>
                 <div className="w-10 h-10 bg-blue-600 text-white font-semibold text-xs flex justify-center items-center rounded-lg border-4 border-blue-800 shadow-lg">
-                  Drop here/Preview
+                  Drop here
                 </div>
               </div>
             ))}
@@ -160,24 +162,28 @@ const ImageUploadGrid = () => {
             onChange={(e) => setFailMessage(e.target.value)}
             className="px-3 py-2 rounded text-black"
           />
-          <div className="col-span-2">
-            <label className="text-sm block mb-1">Netlify Access Token:</label>
-            <input
-              type="text"
-              placeholder="Your Netlify token"
-              value={netlifyToken}
-              onChange={(e) => setNetlifyToken(e.target.value)}
-              className="px-3 py-2 rounded text-black w-full"
-            />
+        </div>
+
+        <div>
+          <label className="block text-sm mb-1">Netlify Access Token:</label>
+          <input
+            type="text"
+            placeholder="Paste your Netlify token here"
+            value={netlifyToken}
+            onChange={(e) => setNetlifyToken(e.target.value)}
+            className="w-full px-3 py-2 rounded text-black"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Don’t have one?{" "}
             <a
               href="https://app.netlify.com/user/applications#personal-access-tokens"
+              className="underline text-blue-400"
               target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-300 text-sm underline"
+              rel="noreferrer"
             >
-              How to get a Netlify access token
+              Get a token
             </a>
-          </div>
+          </p>
         </div>
 
         <div className="flex gap-4 items-center">
@@ -201,21 +207,25 @@ const ImageUploadGrid = () => {
         </div>
 
         {netlifyUrl && (
-          <div className="mt-4 text-green-400 text-sm">
-            ✅ Deployed! Visit your puzzle site:{" "}
+          <div className="mt-4 text-green-400">
+            ✅ Site deployed! Visit:{" "}
             <a
               href={netlifyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
               className="underline text-blue-300"
+              target="_blank"
+              rel="noreferrer"
             >
               {netlifyUrl}
             </a>
           </div>
         )}
 
-        <p className="mt-4 text-sm text-blue-400 underline">
-          <a href="https://github.com/rz74/Memory-Puzzle-Web-App" target="_blank" rel="noopener noreferrer">
+        <p className="mt-6 text-sm text-blue-400 underline">
+          <a
+            href="https://github.com/rz74/Memory-Puzzle-Web-App"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             View source on GitHub
           </a>
         </p>
