@@ -25,30 +25,43 @@ def upload_zip_to_netlify(zip_path, netlify_token):
 
     # Step 2: Wait for provisioning
     print("⏳ Waiting for site to finish provisioning...")
-    for _ in range(10):
-        status_resp = requests.get(f"https://api.netlify.com/api/v1/sites/{site_name}", headers=headers)
-        if status_resp.status_code == 200:
-            state = status_resp.json().get("state")
-            if state == "current":
-                print("✅ Site is ready for deploy.")
-                break
-        time.sleep(1)
-    else:
-        raise Exception("❌ Timed out waiting for site provisioning.")
+    try:
+        for _ in range(10):
+            status_resp = requests.get(f"https://api.netlify.com/api/v1/sites/{site_name}", headers=headers)
+            if status_resp.status_code == 200:
+                state = status_resp.json().get("state")
+                print(f"🔍 Site state: {state}")
+                if state == "current":
+                    print("✅ Site is ready for deploy.")
+                    break
+            time.sleep(1)
+        else:
+            raise Exception("❌ Timed out waiting for site provisioning.")
+    except Exception as e:
+        print(f"❌ Provisioning check failed: {e}")
+        raise
 
     # Step 3: Upload ZIP
-    with open(zip_path, "rb") as f:
-        zip_bytes = f.read()
+    try:
+        print("📦 Deploying ZIP...")
+        with open(zip_path, "rb") as f:
+            zip_bytes = f.read()
 
-    files = {
-        "file": ("site.zip", zip_bytes, "application/zip"),
-    }
+        files = {
+            "file": ("site.zip", zip_bytes, "application/zip"),
+        }
 
-    print("📦 Deploying ZIP...")
-    deploy_resp = requests.post(f"https://api.netlify.com/api/v1/sites/{site_name}/deploys", headers=headers, files=files)
-    if deploy_resp.status_code not in (200, 201):
-        raise Exception(f"❌ Failed to deploy ZIP: {deploy_resp.status_code} - {deploy_resp.text}")
+        deploy_resp = requests.post(f"https://api.netlify.com/api/v1/sites/{site_name}/deploys", headers=headers, files=files)
+        print(f"📡 Deploy response code: {deploy_resp.status_code}")
+        print(f"📡 Deploy response body: {deploy_resp.text}")
 
-    print("✅ Deployment successful!")
+        if deploy_resp.status_code not in (200, 201):
+            raise Exception(f"❌ Failed to deploy ZIP: {deploy_resp.status_code} - {deploy_resp.text}")
+
+        print("✅ Deployment successful!")
+    except Exception as e:
+        print(f"❌ Deploy error: {e}")
+        raise
+
 
     return site_url
