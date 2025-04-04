@@ -5,7 +5,6 @@ import tempfile
 import uuid
 
 from utils.build_site import build_puzzle_site
-from utils.deploy_to_netlify import upload_zip_to_netlify
 from utils.path_config import STATIC_DIR
 from static_handlers import (
     serve_key,
@@ -78,7 +77,7 @@ def generate_site():
                 f.save(save_path)
                 image_paths.append(save_path)
 
-            zip_path, _ = build_puzzle_site(
+            site_path = build_puzzle_site(
                 image_paths=image_paths,
                 labels=filenames,
                 indices=indices,
@@ -94,7 +93,13 @@ def generate_site():
             os.rename(zip_path, final_zip_path)
             ZIP_STORAGE[zip_id] = final_zip_path
 
-            if netlify_token:
+            # Skip Netlify deploy
+    site_id = os.path.basename(site_path)
+    base_url = request.host_url.rstrip("/")
+    site_url = f"{base_url}/sites/{site_id}/"
+    return jsonify({"url": site_url})
+
+    # if netlify_token:
                 print("🚀 Deploying to Netlify...")
                 site_url = upload_zip_to_netlify(final_zip_path, netlify_token)
                 print(f"✅ Site deployed: {site_url}")
@@ -131,3 +136,14 @@ def root():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
+
+@app.route("/sites/<site_id>/<path:filename>")
+def serve_puzzle_file(site_id, filename):
+    site_dir = os.path.join("/tmp/generated_sites", site_id)
+    return send_from_directory(site_dir, filename)
+
+@app.route("/sites/<site_id>/")
+def serve_puzzle_index(site_id):
+    site_dir = os.path.join("/tmp/generated_sites", site_id)
+    return send_from_directory(site_dir, "index.html")

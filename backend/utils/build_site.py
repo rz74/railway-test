@@ -44,7 +44,9 @@ def build_puzzle_site(
         raise ValueError("Number of images must be between 5 and 50.")
 
     site_id = str(uuid.uuid4())[:8]
-    site_path = os.path.join(output_dir, f"puzzle_{site_id}")
+    output_base = '/tmp/generated_sites'
+    os.makedirs(output_base, exist_ok=True)
+    site_path = os.path.join(output_base, site_id)
     os.makedirs(output_dir, exist_ok=True)
     shutil.copytree(TEMPLATE_SITE_DIR, site_path)
 
