@@ -24,28 +24,29 @@ def build_puzzle_site(
     if not (5 <= len(image_paths) <= 50):
         raise ValueError("Number of images must be between 5 and 50.")
 
+    # Unique folder ID
     site_id = str(uuid.uuid4())[:8]
     site_path = os.path.join(output_dir, f"puzzle_{site_id}")
     os.makedirs(output_dir, exist_ok=True)
     shutil.copytree(TEMPLATE_SITE_DIR, site_path)
 
-    # 🔧 Replace index.html if patched version exists
+    # ✅ Replace index.html if patched version exists
     if os.path.exists(PATCHED_INDEX_PATH):
         shutil.copy(PATCHED_INDEX_PATH, os.path.join(site_path, "index.html"))
         print("🔧 Replaced index.html with patched version (relative fetch paths)")
     else:
         print("⚠️ Patched index.html not found. Using default index.html")
 
-    # Mapping: label -> image path
+    # 📍 Mapping
     label_map = {labels[i]: image_paths[i] for i in range(len(image_paths))}
     index_map = {labels[i]: indices[i] for i in range(len(image_paths))}
     obfuscation_map = {label: uuid.uuid4().hex[:12] for label in label_map}
 
-    # Generate AES key
+    # 🔐 AES key
     key = os.urandom(32)
     key_b64 = base64.b64encode(key).decode()
 
-    # 🔐 Encrypt images
+    # 🔒 Encrypt images
     encrypted_dir = os.path.join(site_path, "encrypted")
     encrypt_images(
         image_paths=image_paths,
@@ -54,11 +55,11 @@ def build_puzzle_site(
         label_to_obfuscated={obfuscation_map[label]: label_map[label] for label in label_map}
     )
 
-    # Sanitize target URL
+    # ✅ Normalize target URL
     if not target_url.startswith("http://") and not target_url.startswith("https://"):
         target_url = "https://" + target_url
 
-    # 📁 Save secrets to site/secrets/
+    # 🔑 Save secrets
     secrets_dir = os.path.join(site_path, "secrets")
     os.makedirs(secrets_dir, exist_ok=True)
 
@@ -76,7 +77,7 @@ def build_puzzle_site(
         with open(os.path.join(secrets_dir, filename), "w") as f:
             f.write(content)
 
-    # 📨 Copy to central backend/secrets for backend serving (optional)
+    # (Optional) Copy to backend secrets dir
     os.makedirs(SECRETS_DIR, exist_ok=True)
     for filename in secrets.keys():
         shutil.copy(
@@ -85,12 +86,9 @@ def build_puzzle_site(
         )
         print(f"🔐 Copied {filename} to {SECRETS_DIR}")
 
-    # 🎁 Package as ZIP
+    # ✅ Flatten the ZIP (Netlify needs root-level index.html)
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
-    #shutil.make_archive(zip_path[:-4], 'zip', site_path)
-    # Flatten: include contents of site_path, not the folder itself
     shutil.make_archive(zip_path[:-4], 'zip', root_dir=site_path, base_dir='.')
 
     print(f"📦 Puzzle site generated at {site_path}")
-
     return zip_path, site_path
