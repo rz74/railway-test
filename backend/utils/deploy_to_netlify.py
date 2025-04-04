@@ -26,7 +26,7 @@ def upload_zip_to_netlify(zip_path, netlify_token):
     # Step 2: Wait for provisioning
     print("⏳ Waiting for site to finish provisioning...")
     try:
-        for _ in range(10):
+        for _ in range(100):
             status_resp = requests.get(f"https://api.netlify.com/api/v1/sites/{site_name}", headers=headers)
             if status_resp.status_code == 200:
                 state = status_resp.json().get("state")
