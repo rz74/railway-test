@@ -9,9 +9,7 @@ def upload_zip_to_netlify(zip_path, netlify_token):
 
     # Step 1: Create site with unique name
     site_name = f"puzzle-site-{uuid.uuid4().hex[:8]}"
-    create_payload = {
-        "name": site_name
-    }
+    create_payload = { "name": site_name }
 
     print(f"🚀 Creating site: {site_name}")
     site_resp = requests.post("https://api.netlify.com/api/v1/sites", headers=headers, json=create_payload)
@@ -19,27 +17,25 @@ def upload_zip_to_netlify(zip_path, netlify_token):
         raise Exception(f"❌ Failed to create Netlify site: {site_resp.status_code} - {site_resp.text}")
 
     site_info = site_resp.json()
+    site_id = site_info["id"]
     site_url = site_info.get("ssl_url") or site_info.get("url")
 
-    print(f"✅ Site created: {site_url}")
+    print(f"✅ Site created: {site_url} (id: {site_id})")
 
-    # Step 2: Wait for provisioning
+    # Step 2: Optional wait + poll
     print("⏳ Waiting for site to finish provisioning...")
-    try:
-        for _ in range(100):
-            status_resp = requests.get(f"https://api.netlify.com/api/v1/sites/{site_name}", headers=headers)
-            if status_resp.status_code == 200:
-                state = status_resp.json().get("state")
-                print(f"🔍 Site state: {state}")
-                if state == "current":
-                    print("✅ Site is ready for deploy.")
-                    break
-            time.sleep(1)
-        else:
-            raise Exception("❌ Timed out waiting for site provisioning.")
-    except Exception as e:
-        print(f"❌ Provisioning check failed: {e}")
-        raise
+    time.sleep(2)  # let Netlify stabilize
+    for _ in range(100):
+        status_resp = requests.get(f"https://api.netlify.com/api/v1/sites/{site_id}", headers=headers)
+        if status_resp.status_code == 200:
+            state = status_resp.json().get("state")
+            print(f"🔍 Site state: {state}")
+            if state == "current":
+                print("✅ Site is ready for deploy.")
+                break
+        time.sleep(1)
+    else:
+        print("⚠️ Timed out waiting — deploying anyway...")
 
     # Step 3: Upload ZIP
     try:
@@ -51,17 +47,17 @@ def upload_zip_to_netlify(zip_path, netlify_token):
             "file": ("site.zip", zip_bytes, "application/zip"),
         }
 
-        deploy_resp = requests.post(f"https://api.netlify.com/api/v1/sites/{site_name}/deploys", headers=headers, files=files)
+        deploy_url = f"https://api.netlify.com/api/v1/sites/{site_id}/deploys"
+        deploy_resp = requests.post(deploy_url, headers=headers, files=files)
+
         print(f"📡 Deploy response code: {deploy_resp.status_code}")
-        print(f"📡 Deploy response body: {deploy_resp.text}")
+        print(f"📡 Deploy response body: {deploy_resp.text[:500]}")  # limit long output
 
         if deploy_resp.status_code not in (200, 201):
             raise Exception(f"❌ Failed to deploy ZIP: {deploy_resp.status_code} - {deploy_resp.text}")
 
         print("✅ Deployment successful!")
+        return site_url
     except Exception as e:
         print(f"❌ Deploy error: {e}")
         raise
-
-
-    return site_url
