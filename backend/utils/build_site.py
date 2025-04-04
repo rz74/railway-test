@@ -87,7 +87,10 @@ def build_puzzle_site(
 
     # 🎁 Package as ZIP
     zip_path = os.path.join(output_dir, f"{site_id}.zip")
-    shutil.make_archive(zip_path[:-4], 'zip', site_path)
+    #shutil.make_archive(zip_path[:-4], 'zip', site_path)
+    # Flatten: include contents of site_path, not the folder itself
+    shutil.make_archive(zip_path[:-4], 'zip', root_dir=site_path, base_dir='.')
+
     print(f"📦 Puzzle site generated at {site_path}")
 
     return zip_path, site_path
