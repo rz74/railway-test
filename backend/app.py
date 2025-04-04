@@ -20,14 +20,6 @@ CORS(app)
 def favicon():
     return send_from_directory(STATIC_DIR, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-@app.route('/<path:path>', methods=["GET"])
-def serve_frontend_file(path):
-    return send_from_directory(os.path.join(app.root_path, "static"), path)
-
-@app.route("/", methods=["GET"])
-def root():
-    return send_from_directory(os.path.join(app.root_path, "static"), "index.html")
-
 @app.route("/get-key", methods=["GET"])
 def serve_key_route():
     return serve_key()
@@ -91,21 +83,28 @@ def generate_site():
             )
 
             if netlify_token:
-                # Deploy to Netlify
                 print("🚀 Deploying to Netlify...")
                 site_url = upload_zip_to_netlify(zip_path, netlify_token)
                 print(f"✅ Site deployed: {site_url}")
                 return jsonify({"url": site_url})
             else:
-                # Return zip
                 with open(zip_path, "rb") as f:
                     data = f.read()
-                response = Flask.response_class(data, mimetype="application/zip")
+                response = app.response_class(data, mimetype="application/zip")
                 response.headers["Content-Disposition"] = "attachment; filename=puzzle_site.zip"
                 return response
 
     except Exception as e:
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+# === Catch-all static routes (must come last!) ===
+@app.route('/<path:path>', methods=["GET"])
+def serve_frontend_file(path):
+    return send_from_directory(os.path.join(app.root_path, "static"), path)
+
+@app.route("/", methods=["GET"])
+def root():
+    return send_from_directory(os.path.join(app.root_path, "static"), "index.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
